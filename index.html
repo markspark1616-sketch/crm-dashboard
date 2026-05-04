@@ -1,0 +1,592 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Dream Team — Дашборд</title>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<style>
+  :root {
+    --bg: #0d1117; --card: #161b22; --border: #21262d;
+    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
+    --green: #3fb950; --red: #f85149; --orange: #d29922;
+    --purple: #a371f7; --cyan: #39d353;
+  }
+  * { box-sizing: border-box; margin: 0; padding: 0; }
+  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
+
+  /* ── Password gate ── */
+  #gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
+  .gate-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 340px; text-align: center; }
+  .gate-box h2 { margin-bottom: 8px; font-size: 20px; }
+  .gate-box p { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
+  .gate-box input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 15px; margin-bottom: 12px; outline: none; }
+  .gate-box input:focus { border-color: var(--accent); }
+  .gate-box button { width: 100%; padding: 10px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
+  .gate-box button:hover { opacity: 0.85; }
+  #gate-error { color: var(--red); font-size: 13px; margin-top: 8px; min-height: 18px; }
+
+  /* ── Layout ── */
+  #app { display: none; min-height: 100vh; }
+  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
+  header h1 { font-size: 16px; font-weight: 600; flex: 1; }
+  .updated { font-size: 12px; color: var(--muted); }
+
+  /* ── Tabs ── */
+  .tabs { display: flex; gap: 4px; background: var(--bg); padding: 0 24px; border-bottom: 1px solid var(--border); }
+  .tab { padding: 12px 20px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-weight: 500; transition: all .2s; }
+  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
+  .tab:hover:not(.active) { color: var(--text); }
+
+  /* ── Filters ── */
+  .filters { display: flex; gap: 12px; align-items: center; padding: 16px 24px; flex-wrap: wrap; background: var(--card); border-bottom: 1px solid var(--border); }
+  .filter-group { display: flex; gap: 4px; }
+  .filter-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; transition: all .2s; }
+  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
+  .filter-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
+  select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
+  select:focus { border-color: var(--accent); }
+  .date-inputs { display: flex; gap: 6px; align-items: center; }
+  .date-inputs input[type=date] { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; outline: none; }
+  .date-inputs input[type=date]:focus { border-color: var(--accent); }
+
+  /* ── Main content ── */
+  main { padding: 24px; }
+  .tab-content { display: none; }
+  .tab-content.active { display: block; }
+
+  /* ── Metric cards ── */
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
+  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
+  .card-value { font-size: 28px; font-weight: 700; line-height: 1; }
+  .card-value.accent { color: var(--accent); }
+  .card-value.green { color: var(--green); }
+  .card-value.orange { color: var(--orange); }
+  .card-value.red { color: var(--red); }
+  .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+
+  /* ── Charts row ── */
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
+  @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
+  .chart-card h3 { font-size: 13px; color: var(--muted); margin-bottom: 16px; font-weight: 500; }
+
+  /* ── Funnel ── */
+  .funnel { display: flex; flex-direction: column; gap: 8px; }
+  .funnel-row { display: grid; grid-template-columns: 160px 1fr 60px; gap: 8px; align-items: center; }
+  .funnel-label { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .funnel-bar-wrap { background: var(--bg); border-radius: 4px; height: 24px; overflow: hidden; }
+  .funnel-bar { height: 100%; border-radius: 4px; transition: width .6s ease; display: flex; align-items: center; padding-left: 8px; font-size: 12px; font-weight: 600; color: #000; min-width: 30px; }
+  .funnel-pct { font-size: 12px; color: var(--muted); text-align: right; }
+
+  /* ── City bars ── */
+  .city-bars { display: flex; flex-direction: column; gap: 8px; }
+  .city-row { display: grid; grid-template-columns: 150px 1fr 50px; gap: 8px; align-items: center; }
+  .city-label { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
+  .city-bar-wrap { background: var(--bg); border-radius: 4px; height: 20px; overflow: hidden; }
+  .city-bar { height: 100%; border-radius: 4px; background: var(--purple); transition: width .6s ease; }
+  .city-count { font-size: 12px; color: var(--muted); text-align: right; }
+
+  /* ── Table ── */
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .table-card h3 { font-size: 13px; color: var(--muted); padding: 16px 20px 12px; font-weight: 500; border-bottom: 1px solid var(--border); }
+  table { width: 100%; border-collapse: collapse; }
+  th { text-align: left; padding: 10px 20px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); font-weight: 500; }
+  td { padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
+  tr:last-child td { border-bottom: none; }
+  tr:hover td { background: rgba(255,255,255,.02); }
+  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
+  .badge-green { background: rgba(63,185,80,.15); color: var(--green); }
+  .badge-red { background: rgba(248,81,73,.15); color: var(--red); }
+  .badge-blue { background: rgba(88,166,255,.15); color: var(--accent); }
+
+  .spinner { text-align: center; padding: 60px; color: var(--muted); }
+  .error-msg { background: rgba(248,81,73,.1); border: 1px solid var(--red); border-radius: 8px; padding: 16px; margin: 24px; color: var(--red); }
+</style>
+</head>
+<body>
+
+<!-- Password Gate -->
+<div id="gate">
+  <div class="gate-box">
+    <h2>🔒 Dream Team Dashboard</h2>
+    <p>Введите пароль для доступа</p>
+    <input type="password" id="pwd-input" placeholder="Пароль" onkeydown="if(event.key==='Enter')checkPwd()">
+    <button onclick="checkPwd()">Войти</button>
+    <div id="gate-error"></div>
+  </div>
+</div>
+
+<!-- Main App -->
+<div id="app">
+  <header>
+    <h1>Dream Team Company — Аналитика CRM</h1>
+    <span class="updated" id="updated-at"></span>
+  </header>
+
+  <div class="tabs">
+    <div class="tab active" onclick="switchTab('leads')">📥 Лиды</div>
+    <div class="tab" onclick="switchTab('deals')">💼 Сделки</div>
+  </div>
+
+  <div class="filters">
+    <div class="filter-group" id="period-btns">
+      <button class="filter-btn" onclick="setPeriod(7)">7 дн</button>
+      <button class="filter-btn active" onclick="setPeriod(30)">30 дн</button>
+      <button class="filter-btn" onclick="setPeriod(90)">90 дн</button>
+      <button class="filter-btn" onclick="setPeriod(180)">6 мес</button>
+      <button class="filter-btn" onclick="setPeriod(365)">Год</button>
+    </div>
+    <div class="date-inputs">
+      <input type="date" id="date-from" onchange="setPeriodCustom()">
+      <span style="color:var(--muted)">—</span>
+      <input type="date" id="date-to" onchange="setPeriodCustom()">
+    </div>
+    <select id="city-filter" onchange="render()"><option value="">Все города</option></select>
+  </div>
+
+  <main>
+    <!-- LEADS TAB -->
+    <div class="tab-content active" id="tab-leads">
+      <div class="cards" id="leads-cards"></div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Воронка лидов</h3>
+          <div class="funnel" id="leads-funnel"></div>
+        </div>
+        <div class="chart-card">
+          <h3>По городам</h3>
+          <div class="city-bars" id="leads-cities"></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:24px">
+        <h3>Статусы лидов</h3>
+        <canvas id="leads-donut" style="max-height:260px"></canvas>
+      </div>
+      <div class="table-card">
+        <h3>Эффективность операторов (лиды)</h3>
+        <table><thead><tr>
+          <th>Оператор</th><th>Всего</th><th>Взяты в работу</th>
+          <th>Записаны</th><th>Пришли</th><th>Некачественные</th><th>Конверсия</th>
+        </tr></thead><tbody id="leads-op-table"></tbody></table>
+      </div>
+    </div>
+
+    <!-- DEALS TAB -->
+    <div class="tab-content" id="tab-deals">
+      <div class="cards" id="deals-cards"></div>
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>Воронка сделок</h3>
+          <div class="funnel" id="deals-funnel"></div>
+        </div>
+        <div class="chart-card">
+          <h3>По городам</h3>
+          <div class="city-bars" id="deals-cities"></div>
+        </div>
+      </div>
+      <div class="chart-card" style="margin-bottom:24px">
+        <h3>Стадии сделок</h3>
+        <canvas id="deals-donut" style="max-height:260px"></canvas>
+      </div>
+      <div class="table-card">
+        <h3>Эффективность операторов (сделки)</h3>
+        <table><thead><tr>
+          <th>Оператор</th><th>Всего</th><th>Пришел</th>
+          <th>ТМ назначен</th><th>Успешно</th><th>Выручка</th><th>Конверсия</th>
+        </tr></thead><tbody id="deals-op-table"></tbody></table>
+      </div>
+    </div>
+  </main>
+</div>
+
+<script>
+// ──────────────────────────────────────────────
+// PASSWORD GATE
+// SHA-256 of your password. Generate at: https://emn178.github.io/online-tools/sha256.html
+// Default password: DreamTeam2026
+// ──────────────────────────────────────────────
+const PWD_HASH = 'b94d27b9934d3e08a52e52d7da7dabfac484efe04294e576b4faba5433cd8d3b'; // DreamTeam2026
+
+async function sha256(str) {
+  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
+  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
+}
+
+async function checkPwd() {
+  const val = document.getElementById('pwd-input').value;
+  const hash = await sha256(val);
+  if (hash === PWD_HASH) {
+    sessionStorage.setItem('auth', '1');
+    document.getElementById('gate').style.display = 'none';
+    document.getElementById('app').style.display = 'block';
+    loadData();
+  } else {
+    document.getElementById('gate-error').textContent = 'Неверный пароль';
+    document.getElementById('pwd-input').value = '';
+  }
+}
+
+if (sessionStorage.getItem('auth') === '1') {
+  document.getElementById('gate').style.display = 'none';
+  document.getElementById('app').style.display = 'block';
+}
+
+// ──────────────────────────────────────────────
+// STATE
+// ──────────────────────────────────────────────
+let DATA = null;
+let currentTab = 'leads';
+let dateFrom = null, dateTo = null;
+let charts = {};
+
+function today() { return new Date().toISOString().slice(0,10); }
+function daysAgo(n) {
+  const d = new Date(); d.setDate(d.getDate() - n);
+  return d.toISOString().slice(0,10);
+}
+
+function setPeriod(days) {
+  dateFrom = daysAgo(days);
+  dateTo = today();
+  document.getElementById('date-from').value = dateFrom;
+  document.getElementById('date-to').value = dateTo;
+  document.querySelectorAll('#period-btns .filter-btn').forEach(b => b.classList.remove('active'));
+  event.target.classList.add('active');
+  render();
+}
+
+function setPeriodCustom() {
+  dateFrom = document.getElementById('date-from').value;
+  dateTo = document.getElementById('date-to').value;
+  document.querySelectorAll('#period-btns .filter-btn').forEach(b => b.classList.remove('active'));
+  if (dateFrom && dateTo) render();
+}
+
+function switchTab(tab) {
+  currentTab = tab;
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['leads','deals'][i] === tab));
+  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+  document.getElementById('tab-' + tab).classList.add('active');
+  render();
+}
+
+// ──────────────────────────────────────────────
+// DATA LOADING
+// ──────────────────────────────────────────────
+async function loadData() {
+  try {
+    const r = await fetch('data/dashboard.json?_=' + Date.now());
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    DATA = await r.json();
+
+    // Set default dates
+    dateFrom = daysAgo(30);
+    dateTo = today();
+    document.getElementById('date-from').value = dateFrom;
+    document.getElementById('date-to').value = dateTo;
+
+    // Updated at
+    if (DATA.generated_at) {
+      const d = new Date(DATA.generated_at);
+      document.getElementById('updated-at').textContent =
+        'Обновлено: ' + d.toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+    }
+
+    // Populate city filter
+    const citySet = new Set();
+    Object.values(DATA.meta.categories || {}).forEach(c => citySet.add(c));
+    const sel = document.getElementById('city-filter');
+    citySet.forEach(c => {
+      const opt = document.createElement('option');
+      opt.value = c; opt.textContent = c;
+      sel.appendChild(opt);
+    });
+
+    render();
+  } catch (e) {
+    document.querySelector('main').innerHTML = `<div class="error-msg">Ошибка загрузки данных: ${e.message}<br><small>Убедитесь, что GitHub Actions отработал и data/dashboard.json существует.</small></div>`;
+  }
+}
+
+// ──────────────────────────────────────────────
+// AGGREGATION
+// ──────────────────────────────────────────────
+function getFilteredDays(daily) {
+  return Object.entries(daily).filter(([d]) => d >= dateFrom && d <= dateTo);
+}
+
+function aggregateLeads() {
+  const city = document.getElementById('city-filter').value;
+  const totals = { t: 0, s: {}, c: {} };
+
+  for (const [, day] of getFilteredDays(DATA.leads.daily)) {
+    if (city) {
+      const cnt = day.c?.[city] || 0;
+      if (!cnt) continue;
+      // Scale statuses proportionally (approximate)
+      const scale = day.t ? cnt / day.t : 0;
+      totals.t += cnt;
+      for (const [s, v] of Object.entries(day.s || {})) {
+        totals.s[s] = (totals.s[s] || 0) + Math.round(v * scale);
+      }
+      totals.c[city] = (totals.c[city] || 0) + cnt;
+    } else {
+      totals.t += day.t || 0;
+      for (const [s, v] of Object.entries(day.s || {})) totals.s[s] = (totals.s[s] || 0) + v;
+      for (const [c, v] of Object.entries(day.c || {})) totals.c[c] = (totals.c[c] || 0) + v;
+    }
+  }
+  return totals;
+}
+
+function aggregateDeals() {
+  const city = document.getElementById('city-filter').value;
+  const totals = { t: 0, g: {}, c: {}, r: 0 };
+
+  for (const [, day] of getFilteredDays(DATA.deals.daily)) {
+    if (city) {
+      const cnt = day.c?.[city] || 0;
+      if (!cnt) continue;
+      const scale = day.t ? cnt / day.t : 0;
+      totals.t += cnt;
+      for (const [s, v] of Object.entries(day.g || {})) {
+        totals.g[s] = (totals.g[s] || 0) + Math.round(v * scale);
+      }
+      totals.c[city] = (totals.c[city] || 0) + cnt;
+      totals.r += (day.r || 0) * scale;
+    } else {
+      totals.t += day.t || 0;
+      for (const [s, v] of Object.entries(day.g || {})) totals.g[s] = (totals.g[s] || 0) + v;
+      for (const [c, v] of Object.entries(day.c || {})) totals.c[c] = (totals.c[c] || 0) + v;
+      totals.r += day.r || 0;
+    }
+  }
+  return totals;
+}
+
+function aggregateOperators(type) {
+  const months = new Set();
+  const from = new Date(dateFrom), to = new Date(dateTo);
+  let cur = new Date(from.getFullYear(), from.getMonth(), 1);
+  while (cur <= to) {
+    months.add(cur.toISOString().slice(0,7));
+    cur.setMonth(cur.getMonth() + 1);
+  }
+
+  const combined = {};
+  const opData = DATA[type].operators || {};
+  for (const month of months) {
+    const m = opData[month] || {};
+    for (const [op, d] of Object.entries(m)) {
+      if (!combined[op]) combined[op] = { t: 0, s: {}, r: 0, g: {} };
+      combined[op].t += d.t || 0;
+      combined[op].r += d.r || 0;
+      for (const [k, v] of Object.entries(d.s || {})) combined[op].s[k] = (combined[op].s[k]||0)+v;
+      for (const [k, v] of Object.entries(d.g || {})) combined[op].g[k] = (combined[op].g[k]||0)+v;
+    }
+  }
+  return combined;
+}
+
+// ──────────────────────────────────────────────
+// RENDER
+// ──────────────────────────────────────────────
+function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
+function fmtMoney(n) { return Math.round(n).toLocaleString('ru-RU') + ' ₽'; }
+function pct(a, b) { return b ? Math.round(a/b*100) + '%' : '—'; }
+
+const FUNNEL_COLORS = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e'];
+const DONUT_COLORS = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e','#ff7b72','#ffa657','#79c0ff'];
+
+function renderCard(id, label, value, cls='', sub='') {
+  return `<div class="card"><div class="card-label">${label}</div><div class="card-value ${cls}">${value}</div>${sub?`<div class="card-sub">${sub}</div>`:''}</div>`;
+}
+
+function renderFunnel(el, rows, total) {
+  el.innerHTML = rows.map(([label, count], i) => `
+    <div class="funnel-row">
+      <div class="funnel-label">${label}</div>
+      <div class="funnel-bar-wrap">
+        <div class="funnel-bar" style="width:${total?Math.max(count/total*100,1):0}%;background:${FUNNEL_COLORS[i%FUNNEL_COLORS.length]}">
+          ${count > 0 ? fmt(count) : ''}
+        </div>
+      </div>
+      <div class="funnel-pct">${pct(count, total)}</div>
+    </div>`).join('');
+}
+
+function renderCityBars(el, cityMap) {
+  const sorted = Object.entries(cityMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const max = sorted[0]?.[1] || 1;
+  el.innerHTML = sorted.map(([city, cnt]) => `
+    <div class="city-row">
+      <div class="city-label">${city}</div>
+      <div class="city-bar-wrap"><div class="city-bar" style="width:${cnt/max*100}%"></div></div>
+      <div class="city-count">${fmt(cnt)}</div>
+    </div>`).join('');
+}
+
+function renderDonut(canvasId, labels, values) {
+  if (charts[canvasId]) { charts[canvasId].destroy(); }
+  const ctx = document.getElementById(canvasId).getContext('2d');
+  charts[canvasId] = new Chart(ctx, {
+    type: 'doughnut',
+    data: {
+      labels,
+      datasets: [{ data: values, backgroundColor: DONUT_COLORS, borderColor: 'var(--card)', borderWidth: 2 }]
+    },
+    options: {
+      responsive: true, maintainAspectRatio: true,
+      plugins: {
+        legend: { position: 'right', labels: { color: '#8b949e', font: { size: 12 }, padding: 12, boxWidth: 14 } },
+        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
+      }
+    }
+  });
+}
+
+// ── LEADS ──
+function renderLeads() {
+  const agg = aggregateLeads();
+  const meta = DATA.meta;
+  const s = agg.s;
+
+  const inWork = s['IN_PROCESS'] || 0;
+  const recorded = (s['UC_W36M8K']||0) + (s['UC_CI0W8O']||0) + (s['UC_TD7XTT']||0);
+  const came = s['CONVERTED'] || 0;
+  const junk = (s['JUNK']||0) + (s['1']||0);
+  const notReached = s['PROCESSED'] || 0;
+  const condRefusal = s['3'] || 0;
+
+  document.getElementById('leads-cards').innerHTML =
+    renderCard('', 'Всего лидов', fmt(agg.t), 'accent') +
+    renderCard('', 'Взяты в работу', fmt(inWork), '', pct(inWork, agg.t) + ' от всех') +
+    renderCard('', 'Недозвон', fmt(notReached), 'orange') +
+    renderCard('', 'Не записан', fmt(s['UC_I0XLWE']||0), '') +
+    renderCard('', 'Отменил запись', fmt(s['UC_KXIWFH']||0), '') +
+    renderCard('', 'Записан', fmt(recorded), 'green', pct(recorded, agg.t) + ' от всех') +
+    renderCard('', 'Условный отказ', fmt(condRefusal), '') +
+    renderCard('', 'Пришёл', fmt(came), 'green', pct(came, agg.t) + ' конверсия') +
+    renderCard('', 'Некачественный', fmt(junk), 'red', pct(junk, agg.t) + ' от всех');
+
+  renderFunnel(document.getElementById('leads-funnel'), [
+    ['Всего лидов', agg.t],
+    ['Взяты в работу', inWork],
+    ['Недозвон', notReached],
+    ['Записан', recorded],
+    ['Пришёл', came],
+  ], agg.t);
+
+  renderCityBars(document.getElementById('leads-cities'), agg.c);
+
+  const statusOrder = meta.lead_status_order || Object.keys(s);
+  const donutLabels = [], donutVals = [];
+  for (const sid of statusOrder) {
+    if (s[sid]) { donutLabels.push(meta.lead_statuses[sid] || sid); donutVals.push(s[sid]); }
+  }
+  renderDonut('leads-donut', donutLabels, donutVals);
+
+  // Operator table
+  const ops = aggregateOperators('leads');
+  const tbody = document.getElementById('leads-op-table');
+  const users = meta.users || {};
+  const rows = Object.entries(ops).sort((a,b)=>b[1].t-a[1].t).slice(0,20);
+  tbody.innerHTML = rows.map(([id, d]) => {
+    const name = users[id] || 'Оператор ' + id;
+    const rec = (d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0);
+    const conv = d.s['CONVERTED'] || 0;
+    const junk2 = (d.s['JUNK']||0)+(d.s['1']||0);
+    const convPct = d.t ? Math.round(conv/d.t*100) : 0;
+    return `<tr>
+      <td>${name}</td>
+      <td><strong>${fmt(d.t)}</strong></td>
+      <td>${fmt(d.s['IN_PROCESS']||0)}</td>
+      <td>${fmt(rec)}</td>
+      <td><span class="badge badge-green">${fmt(conv)}</span></td>
+      <td><span class="badge badge-red">${fmt(junk2)}</span></td>
+      <td><span class="badge badge-blue">${convPct}%</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+}
+
+// ── DEALS ──
+function renderDeals() {
+  const agg = aggregateDeals();
+  const meta = DATA.meta;
+  const g = agg.g;
+
+  const came = g['NEW'] || 0;
+  const tmAssigned = g['PREPARATION'] || 0;
+  const presentation = (g['PREPAYMENT_INVOICE']||0) + (g['PREPAYMENT_INVOIC']||0);
+  const exam = (g['EXECUTING']||0) + (g['UC_MLCFYZ']||0);
+  const closing = (g['FINAL_INVOICE']||0) + (g['UC_IA4RQ3']||0);
+  const finance = (g['1']||0) + (g['UC_FCWL21']||0) + (g['6']||0) + (g['7']||0) + (g['UC_MSD2TV']||0) + (g['UC_LNVU9C']||0);
+  const won = g['WON'] || 0;
+  const lost = (g['LOSE']||0) + (g['APOLOGY']||0) + (g['UC_ZFGB34']||0);
+
+  document.getElementById('deals-cards').innerHTML =
+    renderCard('', 'Всего сделок', fmt(agg.t), 'accent') +
+    renderCard('', 'Пришел', fmt(came), '', pct(came, agg.t) + ' от всех') +
+    renderCard('', 'Назначен ТМ', fmt(tmAssigned), '') +
+    renderCard('', 'На презентации', fmt(presentation), '') +
+    renderCard('', 'На осмотре', fmt(exam), '') +
+    renderCard('', 'На закрытие', fmt(closing), '') +
+    renderCard('', 'Фин отдел', fmt(finance), 'orange') +
+    renderCard('', 'Сделка успешна', fmt(won), 'green', pct(won, agg.t) + ' конверсия') +
+    renderCard('', 'Провалено', fmt(lost), 'red') +
+    renderCard('', 'Выручка (WON)', fmtMoney(agg.r), 'green');
+
+  renderFunnel(document.getElementById('deals-funnel'), [
+    ['Всего сделок', agg.t],
+    ['Пришел', came],
+    ['Назначен ТМ', tmAssigned],
+    ['На презентации', presentation],
+    ['На осмотре', exam],
+    ['На закрытие', closing],
+    ['Фин отдел', finance],
+    ['Успешно', won],
+  ], agg.t);
+
+  renderCityBars(document.getElementById('deals-cities'), agg.c);
+
+  const stageOrder = meta.deal_stage_order || Object.keys(g);
+  const donutLabels = [], donutVals = [];
+  for (const sid of stageOrder) {
+    if (g[sid]) { donutLabels.push(meta.deal_stages[sid] || sid); donutVals.push(g[sid]); }
+  }
+  renderDonut('deals-donut', donutLabels, donutVals);
+
+  // Operator table
+  const ops = aggregateOperators('deals');
+  const tbody = document.getElementById('deals-op-table');
+  const users = meta.users || {};
+  const rows = Object.entries(ops).sort((a,b)=>b[1].t-a[1].t).slice(0,20);
+  tbody.innerHTML = rows.map(([id, d]) => {
+    const name = users[id] || 'Оператор ' + id;
+    const won2 = d.g['WON'] || 0;
+    const convPct = d.t ? Math.round(won2/d.t*100) : 0;
+    return `<tr>
+      <td>${name}</td>
+      <td><strong>${fmt(d.t)}</strong></td>
+      <td>${fmt(d.g['NEW']||0)}</td>
+      <td>${fmt(d.g['PREPARATION']||0)}</td>
+      <td><span class="badge badge-green">${fmt(won2)}</span></td>
+      <td>${fmtMoney(d.r)}</td>
+      <td><span class="badge badge-blue">${convPct}%</span></td>
+    </tr>`;
+  }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+}
+
+function render() {
+  if (!DATA) return;
+  if (currentTab === 'leads') renderLeads();
+  else renderDeals();
+}
+
+// Auto-load if already authenticated
+if (sessionStorage.getItem('auth') === '1') loadData();
+</script>
+</body>
+</html>
