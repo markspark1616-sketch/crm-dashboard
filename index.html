@@ -10,12 +10,11 @@
     --bg: #0d1117; --card: #161b22; --border: #21262d;
     --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
     --green: #3fb950; --red: #f85149; --orange: #d29922;
-    --purple: #a371f7; --cyan: #39d353;
+    --purple: #a371f7; --cyan: #39d353; --teal: #2ea2a0;
   }
   * { box-sizing: border-box; margin: 0; padding: 0; }
   body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
 
-  /* ── Password gate ── */
   #gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
   .gate-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 340px; text-align: center; }
   .gate-box h2 { margin-bottom: 8px; font-size: 20px; }
@@ -26,19 +25,16 @@
   .gate-box button:hover { opacity: 0.85; }
   #gate-error { color: var(--red); font-size: 13px; margin-top: 8px; min-height: 18px; }
 
-  /* ── Layout ── */
   #app { display: none; min-height: 100vh; }
   header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
   header h1 { font-size: 16px; font-weight: 600; flex: 1; }
   .updated { font-size: 12px; color: var(--muted); }
 
-  /* ── Tabs ── */
   .tabs { display: flex; gap: 4px; background: var(--bg); padding: 0 24px; border-bottom: 1px solid var(--border); }
   .tab { padding: 12px 20px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-weight: 500; transition: all .2s; }
   .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
   .tab:hover:not(.active) { color: var(--text); }
 
-  /* ── Filters ── */
   .filters { display: flex; gap: 12px; align-items: center; padding: 16px 24px; flex-wrap: wrap; background: var(--card); border-bottom: 1px solid var(--border); }
   .filter-group { display: flex; gap: 4px; }
   .filter-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; transition: all .2s; }
@@ -50,13 +46,13 @@
   .date-inputs input[type=date] { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; outline: none; }
   .date-inputs input[type=date]:focus { border-color: var(--accent); }
 
-  /* ── Main content ── */
   main { padding: 24px; }
   .tab-content { display: none; }
   .tab-content.active { display: block; }
 
-  /* ── Metric cards ── */
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 24px; }
+  .section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 24px 0 12px; font-weight: 600; }
+
+  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
   .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
   .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
   .card-value { font-size: 28px; font-weight: 700; line-height: 1; }
@@ -64,15 +60,21 @@
   .card-value.green { color: var(--green); }
   .card-value.orange { color: var(--orange); }
   .card-value.red { color: var(--red); }
+  .card-value.purple { color: var(--purple); }
+  .card-value.teal { color: var(--teal); }
   .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
+  .card-delta { font-size: 12px; margin-top: 4px; }
+  .card-delta.up { color: var(--green); }
+  .card-delta.down { color: var(--red); }
 
-  /* ── Charts row ── */
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 24px; }
-  @media (max-width: 900px) { .charts-row { grid-template-columns: 1fr; } }
+  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  .charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
+  @media (max-width: 1100px) { .charts-row-3 { grid-template-columns: 1fr 1fr; } }
+  @media (max-width: 900px) { .charts-row, .charts-row-3 { grid-template-columns: 1fr; } }
   .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
   .chart-card h3 { font-size: 13px; color: var(--muted); margin-bottom: 16px; font-weight: 500; }
+  .chart-card.full { margin-bottom: 16px; }
 
-  /* ── Funnel ── */
   .funnel { display: flex; flex-direction: column; gap: 8px; }
   .funnel-row { display: grid; grid-template-columns: 160px 1fr 60px; gap: 8px; align-items: center; }
   .funnel-label { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -80,7 +82,6 @@
   .funnel-bar { height: 100%; border-radius: 4px; transition: width .6s ease; display: flex; align-items: center; padding-left: 8px; font-size: 12px; font-weight: 600; color: #000; min-width: 30px; }
   .funnel-pct { font-size: 12px; color: var(--muted); text-align: right; }
 
-  /* ── City bars ── */
   .city-bars { display: flex; flex-direction: column; gap: 8px; }
   .city-row { display: grid; grid-template-columns: 150px 1fr 50px; gap: 8px; align-items: center; }
   .city-label { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
@@ -88,8 +89,7 @@
   .city-bar { height: 100%; border-radius: 4px; background: var(--purple); transition: width .6s ease; }
   .city-count { font-size: 12px; color: var(--muted); text-align: right; }
 
-  /* ── Table ── */
-  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 24px; }
+  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
   .table-card h3 { font-size: 13px; color: var(--muted); padding: 16px 20px 12px; font-weight: 500; border-bottom: 1px solid var(--border); }
   table { width: 100%; border-collapse: collapse; }
   th { text-align: left; padding: 10px 20px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); font-weight: 500; }
@@ -100,6 +100,26 @@
   .badge-green { background: rgba(63,185,80,.15); color: var(--green); }
   .badge-red { background: rgba(248,81,73,.15); color: var(--red); }
   .badge-blue { background: rgba(88,166,255,.15); color: var(--accent); }
+  .badge-orange { background: rgba(210,153,34,.15); color: var(--orange); }
+  .badge-purple { background: rgba(163,113,247,.15); color: var(--purple); }
+
+  /* Heatmap */
+  .heatmap { display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 4px; }
+  .hm-header { font-size: 11px; color: var(--muted); text-align: center; padding: 4px 0; }
+  .hm-label { font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
+  .hm-cell { border-radius: 4px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: rgba(255,255,255,.7); transition: opacity .3s; }
+
+  /* Comparison banner */
+  .compare-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
+  .compare-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
+  .compare-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
+  .compare-vals { display: flex; align-items: baseline; gap: 8px; }
+  .compare-cur { font-size: 22px; font-weight: 700; }
+  .compare-prev { font-size: 13px; color: var(--muted); }
+  .compare-delta { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
+  .delta-up { background: rgba(63,185,80,.15); color: var(--green); }
+  .delta-down { background: rgba(248,81,73,.15); color: var(--red); }
+  .delta-flat { background: rgba(139,148,158,.15); color: var(--muted); }
 
   .spinner { text-align: center; padding: 60px; color: var(--muted); }
   .error-msg { background: rgba(248,81,73,.1); border: 1px solid var(--red); border-radius: 8px; padding: 16px; margin: 24px; color: var(--red); }
@@ -107,7 +127,6 @@
 </head>
 <body>
 
-<!-- Password Gate -->
 <div id="gate">
   <div class="gate-box">
     <h2>🔒 Dream Team Dashboard</h2>
@@ -118,7 +137,6 @@
   </div>
 </div>
 
-<!-- Main App -->
 <div id="app">
   <header>
     <h1>Dream Team Company — Аналитика CRM</h1>
@@ -128,15 +146,16 @@
   <div class="tabs">
     <div class="tab active" onclick="switchTab('leads')">📥 Лиды</div>
     <div class="tab" onclick="switchTab('deals')">💼 Сделки</div>
+    <div class="tab" onclick="switchTab('overview')">📊 Обзор</div>
   </div>
 
   <div class="filters">
     <div class="filter-group" id="period-btns">
-      <button class="filter-btn" onclick="setPeriod(7)">7 дн</button>
-      <button class="filter-btn active" onclick="setPeriod(30)">30 дн</button>
-      <button class="filter-btn" onclick="setPeriod(90)">90 дн</button>
-      <button class="filter-btn" onclick="setPeriod(180)">6 мес</button>
-      <button class="filter-btn" onclick="setPeriod(365)">Год</button>
+      <button class="filter-btn" onclick="setPeriod(7,this)">7 дн</button>
+      <button class="filter-btn active" onclick="setPeriod(30,this)">30 дн</button>
+      <button class="filter-btn" onclick="setPeriod(90,this)">90 дн</button>
+      <button class="filter-btn" onclick="setPeriod(180,this)">6 мес</button>
+      <button class="filter-btn" onclick="setPeriod(365,this)">Год</button>
     </div>
     <div class="date-inputs">
       <input type="date" id="date-from" onchange="setPeriodCustom()">
@@ -144,15 +163,21 @@
       <input type="date" id="date-to" onchange="setPeriodCustom()">
     </div>
     <select id="city-filter" onchange="render()"><option value="">Все города</option></select>
+    <select id="source-filter" onchange="render()"><option value="">Все источники</option></select>
   </div>
 
   <main>
     <!-- LEADS TAB -->
     <div class="tab-content active" id="tab-leads">
+      <div class="section-title">Сравнение с прошлым периодом</div>
+      <div class="compare-row" id="leads-compare"></div>
+
+      <div class="section-title">Ключевые метрики</div>
       <div class="cards" id="leads-cards"></div>
+
       <div class="charts-row">
         <div class="chart-card">
-          <h3>Воронка лидов</h3>
+          <h3>Воронка лидов (% от всех)</h3>
           <div class="funnel" id="leads-funnel"></div>
         </div>
         <div class="chart-card">
@@ -160,60 +185,104 @@
           <div class="city-bars" id="leads-cities"></div>
         </div>
       </div>
-      <div class="chart-card" style="margin-bottom:24px">
-        <h3>Статусы лидов</h3>
-        <canvas id="leads-donut" style="max-height:260px"></canvas>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>По источникам</h3>
+          <div class="city-bars" id="leads-sources"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Статусы лидов</h3>
+          <canvas id="leads-donut" style="max-height:260px"></canvas>
+        </div>
       </div>
+
+      <div class="chart-card full">
+        <h3>Активность по дням недели</h3>
+        <div class="heatmap" id="leads-heatmap"></div>
+      </div>
+
       <div class="table-card">
-        <h3>Эффективность операторов (лиды)</h3>
+        <h3>Эффективность операторов (лиды) — рейтинг по конверсии</h3>
         <table><thead><tr>
-          <th>Оператор</th><th>Всего</th><th>Взяты в работу</th>
-          <th>Записаны</th><th>Пришли</th><th>Некачественные</th><th>Конверсия</th>
+          <th>#</th><th>Оператор</th><th>Всего</th><th>Взяты в работу</th>
+          <th>Записаны</th><th>Пришли</th><th>Некачественные</th><th>Конверсия лид→приход</th>
         </tr></thead><tbody id="leads-op-table"></tbody></table>
       </div>
     </div>
 
     <!-- DEALS TAB -->
     <div class="tab-content" id="tab-deals">
+      <div class="section-title">Сравнение с прошлым периодом</div>
+      <div class="compare-row" id="deals-compare"></div>
+
+      <div class="section-title">Ключевые метрики</div>
       <div class="cards" id="deals-cards"></div>
+
+      <div class="section-title">Рассрочки и планы лечения</div>
+      <div class="cards" id="deals-finance-cards"></div>
+
       <div class="charts-row">
         <div class="chart-card">
-          <h3>Воронка сделок</h3>
+          <h3>Воронка сделок (% от всех)</h3>
           <div class="funnel" id="deals-funnel"></div>
         </div>
         <div class="chart-card">
-          <h3>По городам</h3>
-          <div class="city-bars" id="deals-cities"></div>
+          <h3>По городам (средний чек)</h3>
+          <div class="city-bars" id="deals-cities-avg"></div>
         </div>
       </div>
-      <div class="chart-card" style="margin-bottom:24px">
-        <h3>Стадии сделок</h3>
-        <canvas id="deals-donut" style="max-height:260px"></canvas>
+
+      <div class="charts-row">
+        <div class="chart-card">
+          <h3>По городам (количество)</h3>
+          <div class="city-bars" id="deals-cities"></div>
+        </div>
+        <div class="chart-card">
+          <h3>Стадии сделок</h3>
+          <canvas id="deals-donut" style="max-height:260px"></canvas>
+        </div>
       </div>
+
+      <div class="chart-card full">
+        <h3>Активность по дням недели</h3>
+        <div class="heatmap" id="deals-heatmap"></div>
+      </div>
+
       <div class="table-card">
-        <h3>Эффективность операторов (сделки)</h3>
+        <h3>Эффективность операторов (сделки) — рейтинг по конверсии</h3>
         <table><thead><tr>
-          <th>Оператор</th><th>Всего</th><th>Пришел</th>
+          <th>#</th><th>Оператор</th><th>Всего</th><th>Пришел</th>
           <th>ТМ назначен</th><th>Успешно</th><th>Выручка</th><th>Конверсия</th>
         </tr></thead><tbody id="deals-op-table"></tbody></table>
+      </div>
+    </div>
+
+    <!-- OVERVIEW TAB -->
+    <div class="tab-content" id="tab-overview">
+      <div class="section-title">Динамика по месяцам</div>
+      <div class="chart-card full">
+        <h3>Лиды и сделки помесячно</h3>
+        <canvas id="trend-chart" style="max-height:320px"></canvas>
+      </div>
+
+      <div class="section-title">Конверсия лид → сделка</div>
+      <div class="cards" id="conv-cards"></div>
+      <div class="chart-card full">
+        <h3>Конверсия лид → сделка по месяцам (%)</h3>
+        <canvas id="conv-chart" style="max-height:260px"></canvas>
       </div>
     </div>
   </main>
 </div>
 
 <script>
-// ──────────────────────────────────────────────
-// PASSWORD GATE
-// SHA-256 of your password. Generate at: https://emn178.github.io/online-tools/sha256.html
-// Default password: DreamTeam2026
-// ──────────────────────────────────────────────
-const PWD_HASH = 'b56b65e2b4c39c6ae74b4c67b3d670533e73e43e7e4107d2d10494e9679daa33'; // DreamTeam2026
+const PWD_HASH = 'b56b65e2b4c39c6ae74b4c67b3d670533e73e43e7e4107d2d10494e9679daa33';
 
 async function sha256(str) {
   const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
   return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
 }
-
 async function checkPwd() {
   const val = document.getElementById('pwd-input').value;
   const hash = await sha256(val);
@@ -227,140 +296,148 @@ async function checkPwd() {
     document.getElementById('pwd-input').value = '';
   }
 }
-
 if (sessionStorage.getItem('auth') === '1') {
   document.getElementById('gate').style.display = 'none';
   document.getElementById('app').style.display = 'block';
 }
 
-// ──────────────────────────────────────────────
-// STATE
-// ──────────────────────────────────────────────
-let DATA = null;
-let currentTab = 'leads';
-let dateFrom = null, dateTo = null;
-let charts = {};
+// ── STATE ──
+let DATA = null, currentTab = 'leads', dateFrom = null, dateTo = null, charts = {};
 
 function today() { return new Date().toISOString().slice(0,10); }
-function daysAgo(n) {
-  const d = new Date(); d.setDate(d.getDate() - n);
-  return d.toISOString().slice(0,10);
-}
+function daysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
 
-function setPeriod(days) {
-  dateFrom = daysAgo(days);
-  dateTo = today();
+function setPeriod(days, btn) {
+  dateFrom = daysAgo(days); dateTo = today();
   document.getElementById('date-from').value = dateFrom;
   document.getElementById('date-to').value = dateTo;
   document.querySelectorAll('#period-btns .filter-btn').forEach(b => b.classList.remove('active'));
-  event.target.classList.add('active');
+  btn.classList.add('active');
   render();
 }
-
 function setPeriodCustom() {
   dateFrom = document.getElementById('date-from').value;
   dateTo = document.getElementById('date-to').value;
   document.querySelectorAll('#period-btns .filter-btn').forEach(b => b.classList.remove('active'));
   if (dateFrom && dateTo) render();
 }
-
 function switchTab(tab) {
   currentTab = tab;
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['leads','deals'][i] === tab));
+  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['leads','deals','overview'][i] === tab));
   document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
-  document.getElementById('tab-' + tab).classList.add('active');
+  document.getElementById('tab-'+tab).classList.add('active');
   render();
 }
 
-// ──────────────────────────────────────────────
-// DATA LOADING
-// ──────────────────────────────────────────────
+// ── DATA LOADING ──
 async function loadData() {
   try {
-    const r = await fetch('data/dashboard.json?_=' + Date.now());
-    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const r = await fetch('data/dashboard.json?_='+Date.now());
+    if (!r.ok) throw new Error('HTTP '+r.status);
     DATA = await r.json();
 
-    // Set default dates
-    dateFrom = daysAgo(30);
-    dateTo = today();
+    dateFrom = daysAgo(30); dateTo = today();
     document.getElementById('date-from').value = dateFrom;
     document.getElementById('date-to').value = dateTo;
 
-    // Updated at
     if (DATA.generated_at) {
       const d = new Date(DATA.generated_at);
       document.getElementById('updated-at').textContent =
-        'Обновлено: ' + d.toLocaleString('ru-RU', {day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+        'Обновлено: '+d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
     }
 
-    // Populate city filter
+    // City filter
     const citySet = new Set();
-    Object.values(DATA.meta.categories || {}).forEach(c => citySet.add(c));
-    const sel = document.getElementById('city-filter');
-    citySet.forEach(c => {
-      const opt = document.createElement('option');
-      opt.value = c; opt.textContent = c;
-      sel.appendChild(opt);
+    Object.values(DATA.meta.categories||{}).forEach(c => citySet.add(c));
+    const csel = document.getElementById('city-filter');
+    citySet.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; csel.appendChild(o); });
+
+    // Source filter
+    const srcSel = document.getElementById('source-filter');
+    const sources = DATA.meta.sources || {};
+    Object.entries(sources).forEach(([id,name]) => {
+      const o=document.createElement('option'); o.value=id; o.textContent=name; srcSel.appendChild(o);
     });
 
     render();
-  } catch (e) {
-    document.querySelector('main').innerHTML = `<div class="error-msg">Ошибка загрузки данных: ${e.message}<br><small>Убедитесь, что GitHub Actions отработал и data/dashboard.json существует.</small></div>`;
+  } catch(e) {
+    document.querySelector('main').innerHTML = `<div class="error-msg">Ошибка загрузки данных: ${e.message}<br><small>Убедитесь что GitHub Actions отработал и data/dashboard.json существует.</small></div>`;
   }
 }
 
-// ──────────────────────────────────────────────
-// AGGREGATION
-// ──────────────────────────────────────────────
+// ── UTILS ──
+function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
+function fmtMoney(n) { return Math.round(n).toLocaleString('ru-RU')+' ₽'; }
+function pct(a,b) { return b ? Math.round(a/b*100)+'%' : '—'; }
+function pctN(a,b) { return b ? Math.round(a/b*100) : 0; }
+
+// ── AGGREGATION ──
 function getFilteredDays(daily) {
   return Object.entries(daily).filter(([d]) => d >= dateFrom && d <= dateTo);
 }
 
-function aggregateLeads() {
-  const city = document.getElementById('city-filter').value;
-  const totals = { t: 0, s: {}, c: {} };
+function prevPeriod() {
+  const ms = new Date(dateTo) - new Date(dateFrom);
+  const days = Math.round(ms/86400000);
+  const pTo = daysAgo(days+1);
+  const pFrom = daysAgo(days*2+1);
+  return { from: pFrom, to: pTo };
+}
 
-  for (const [, day] of getFilteredDays(DATA.leads.daily)) {
+function aggregateLeads(from, to, cityOverride, srcOverride) {
+  const city = cityOverride !== undefined ? cityOverride : document.getElementById('city-filter').value;
+  const src  = srcOverride  !== undefined ? srcOverride  : document.getElementById('source-filter').value;
+  const totals = { t:0, s:{}, c:{}, src:{} };
+  const entries = Object.entries(DATA.leads.daily).filter(([d]) => d >= from && d <= to);
+  for (const [,day] of entries) {
+    let scale = 1;
+    if (src && day.src) {
+      const srcCnt = day.src[src] || 0;
+      scale = day.t ? srcCnt/day.t : 0;
+    }
     if (city) {
-      const cnt = day.c?.[city] || 0;
+      const cnt = (day.c?.[city]||0) * scale;
       if (!cnt) continue;
-      // Scale statuses proportionally (approximate)
-      const scale = day.t ? cnt / day.t : 0;
+      const finalScale = day.t ? cnt/day.t : 0;
       totals.t += cnt;
-      for (const [s, v] of Object.entries(day.s || {})) {
-        totals.s[s] = (totals.s[s] || 0) + Math.round(v * scale);
-      }
-      totals.c[city] = (totals.c[city] || 0) + cnt;
+      for (const [s,v] of Object.entries(day.s||{})) totals.s[s] = (totals.s[s]||0) + v*finalScale;
+      totals.c[city] = (totals.c[city]||0) + cnt;
     } else {
-      totals.t += day.t || 0;
-      for (const [s, v] of Object.entries(day.s || {})) totals.s[s] = (totals.s[s] || 0) + v;
-      for (const [c, v] of Object.entries(day.c || {})) totals.c[c] = (totals.c[c] || 0) + v;
+      totals.t += (day.t||0)*scale;
+      for (const [s,v] of Object.entries(day.s||{})) totals.s[s] = (totals.s[s]||0) + v*scale;
+      for (const [c,v] of Object.entries(day.c||{})) totals.c[c] = (totals.c[c]||0) + v*scale;
+      for (const [s,v] of Object.entries(day.src||{})) totals.src[s] = (totals.src[s]||0) + v;
     }
   }
   return totals;
 }
 
-function aggregateDeals() {
-  const city = document.getElementById('city-filter').value;
-  const totals = { t: 0, g: {}, c: {}, r: 0 };
-
-  for (const [, day] of getFilteredDays(DATA.deals.daily)) {
+function aggregateDeals(from, to, cityOverride) {
+  const city = cityOverride !== undefined ? cityOverride : document.getElementById('city-filter').value;
+  const totals = { t:0, g:{}, c:{}, r:0, inst:0, inst_r:0, plan:0, plan_r:0 };
+  const entries = Object.entries(DATA.deals.daily).filter(([d]) => d >= from && d <= to);
+  for (const [,day] of entries) {
     if (city) {
-      const cnt = day.c?.[city] || 0;
+      const cnt = day.c?.[city]||0;
       if (!cnt) continue;
-      const scale = day.t ? cnt / day.t : 0;
+      const scale = day.t ? cnt/day.t : 0;
       totals.t += cnt;
-      for (const [s, v] of Object.entries(day.g || {})) {
-        totals.g[s] = (totals.g[s] || 0) + Math.round(v * scale);
-      }
-      totals.c[city] = (totals.c[city] || 0) + cnt;
-      totals.r += (day.r || 0) * scale;
+      for (const [s,v] of Object.entries(day.g||{})) totals.g[s] = (totals.g[s]||0) + Math.round(v*scale);
+      totals.c[city] = (totals.c[city]||0) + cnt;
+      totals.r += (day.r||0)*scale;
+      totals.inst += (day.inst||0)*scale;
+      totals.inst_r += (day.inst_r||0)*scale;
+      totals.plan += (day.plan||0)*scale;
+      totals.plan_r += (day.plan_r||0)*scale;
     } else {
-      totals.t += day.t || 0;
-      for (const [s, v] of Object.entries(day.g || {})) totals.g[s] = (totals.g[s] || 0) + v;
-      for (const [c, v] of Object.entries(day.c || {})) totals.c[c] = (totals.c[c] || 0) + v;
-      totals.r += day.r || 0;
+      totals.t += day.t||0;
+      for (const [s,v] of Object.entries(day.g||{})) totals.g[s] = (totals.g[s]||0) + v;
+      for (const [c,v] of Object.entries(day.c||{})) totals.c[c] = (totals.c[c]||0) + v;
+      totals.r += day.r||0;
+      totals.inst += day.inst||0;
+      totals.inst_r += day.inst_r||0;
+      totals.plan += day.plan||0;
+      totals.plan_r += day.plan_r||0;
     }
   }
   return totals;
@@ -370,223 +447,392 @@ function aggregateOperators(type) {
   const months = new Set();
   const from = new Date(dateFrom), to = new Date(dateTo);
   let cur = new Date(from.getFullYear(), from.getMonth(), 1);
-  while (cur <= to) {
-    months.add(cur.toISOString().slice(0,7));
-    cur.setMonth(cur.getMonth() + 1);
-  }
-
+  while (cur <= to) { months.add(cur.toISOString().slice(0,7)); cur.setMonth(cur.getMonth()+1); }
   const combined = {};
-  const opData = DATA[type].operators || {};
+  const opData = DATA[type].operators||{};
   for (const month of months) {
-    const m = opData[month] || {};
-    for (const [op, d] of Object.entries(m)) {
-      if (!combined[op]) combined[op] = { t: 0, s: {}, r: 0, g: {} };
-      combined[op].t += d.t || 0;
-      combined[op].r += d.r || 0;
-      for (const [k, v] of Object.entries(d.s || {})) combined[op].s[k] = (combined[op].s[k]||0)+v;
-      for (const [k, v] of Object.entries(d.g || {})) combined[op].g[k] = (combined[op].g[k]||0)+v;
+    for (const [op,d] of Object.entries(opData[month]||{})) {
+      if (!combined[op]) combined[op] = {t:0,s:{},r:0,g:{}};
+      combined[op].t += d.t||0;
+      combined[op].r += d.r||0;
+      for (const [k,v] of Object.entries(d.s||{})) combined[op].s[k] = (combined[op].s[k]||0)+v;
+      for (const [k,v] of Object.entries(d.g||{})) combined[op].g[k] = (combined[op].g[k]||0)+v;
     }
   }
   return combined;
 }
 
-// ──────────────────────────────────────────────
-// RENDER
-// ──────────────────────────────────────────────
-function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
-function fmtMoney(n) { return Math.round(n).toLocaleString('ru-RU') + ' ₽'; }
-function pct(a, b) { return b ? Math.round(a/b*100) + '%' : '—'; }
-
+// ── RENDER HELPERS ──
 const FUNNEL_COLORS = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e'];
-const DONUT_COLORS = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e','#ff7b72','#ffa657','#79c0ff'];
+const DONUT_COLORS  = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e','#ff7b72','#ffa657','#79c0ff'];
+const DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
+const HOUR_LABELS = ['00','02','04','06','08','10','12','14','16','18','20','22'];
 
-function renderCard(id, label, value, cls='', sub='') {
-  return `<div class="card"><div class="card-label">${label}</div><div class="card-value ${cls}">${value}</div>${sub?`<div class="card-sub">${sub}</div>`:''}</div>`;
+function renderCard(label, value, cls='', sub='', delta='') {
+  return `<div class="card">
+    <div class="card-label">${label}</div>
+    <div class="card-value ${cls}">${value}</div>
+    ${sub ? `<div class="card-sub">${sub}</div>` : ''}
+    ${delta ? delta : ''}
+  </div>`;
 }
 
 function renderFunnel(el, rows, total) {
-  el.innerHTML = rows.map(([label, count], i) => `
-    <div class="funnel-row">
+  el.innerHTML = rows.map(([label,count,prevTotal],i) => {
+    const fromPrev = prevTotal != null ? pct(count, prevTotal) : null;
+    return `<div class="funnel-row">
       <div class="funnel-label">${label}</div>
       <div class="funnel-bar-wrap">
         <div class="funnel-bar" style="width:${total?Math.max(count/total*100,1):0}%;background:${FUNNEL_COLORS[i%FUNNEL_COLORS.length]}">
-          ${count > 0 ? fmt(count) : ''}
+          ${count>0?fmt(count):''}
         </div>
       </div>
-      <div class="funnel-pct">${pct(count, total)}</div>
-    </div>`).join('');
+      <div class="funnel-pct">${pct(count,total)}${fromPrev?` <span style="color:var(--muted);font-size:10px">(${fromPrev} пред)</span>`:''}</div>
+    </div>`;
+  }).join('');
 }
 
-function renderCityBars(el, cityMap) {
+function renderCityBars(el, cityMap, suffix='') {
   const sorted = Object.entries(cityMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  const max = sorted[0]?.[1] || 1;
-  el.innerHTML = sorted.map(([city, cnt]) => `
+  const max = sorted[0]?.[1]||1;
+  el.innerHTML = sorted.map(([city,cnt]) => `
     <div class="city-row">
       <div class="city-label">${city}</div>
       <div class="city-bar-wrap"><div class="city-bar" style="width:${cnt/max*100}%"></div></div>
-      <div class="city-count">${fmt(cnt)}</div>
+      <div class="city-count">${suffix ? fmtMoney(cnt) : fmt(cnt)}</div>
     </div>`).join('');
 }
 
 function renderDonut(canvasId, labels, values) {
-  if (charts[canvasId]) { charts[canvasId].destroy(); }
-  const ctx = document.getElementById(canvasId).getContext('2d');
+  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if (!ctx) return;
   charts[canvasId] = new Chart(ctx, {
     type: 'doughnut',
-    data: {
-      labels,
-      datasets: [{ data: values, backgroundColor: DONUT_COLORS, borderColor: 'var(--card)', borderWidth: 2 }]
-    },
+    data: { labels, datasets: [{ data: values, backgroundColor: DONUT_COLORS, borderColor: 'var(--card)', borderWidth: 2 }] },
     options: {
-      responsive: true, maintainAspectRatio: true,
+      responsive:true, maintainAspectRatio:true,
       plugins: {
-        legend: { position: 'right', labels: { color: '#8b949e', font: { size: 12 }, padding: 12, boxWidth: 14 } },
+        legend: { position:'right', labels:{ color:'#8b949e', font:{size:12}, padding:12, boxWidth:14 } },
         tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
       }
     }
   });
 }
 
+function renderLineChart(canvasId, labels, datasets) {
+  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
+  const ctx = document.getElementById(canvasId)?.getContext('2d');
+  if (!ctx) return;
+  charts[canvasId] = new Chart(ctx, {
+    type: 'line',
+    data: { labels, datasets },
+    options: {
+      responsive:true, maintainAspectRatio:true,
+      interaction: { mode:'index', intersect:false },
+      plugins: { legend: { labels: { color:'#8b949e', font:{size:12} } } },
+      scales: {
+        x: { ticks: { color:'#8b949e', font:{size:11} }, grid: { color:'rgba(255,255,255,.05)' } },
+        y: { ticks: { color:'#8b949e', font:{size:11} }, grid: { color:'rgba(255,255,255,.05)' } }
+      }
+    }
+  });
+}
+
+function renderHeatmap(el, daily) {
+  const dow = [0,0,0,0,0,0,0]; // Mon=0..Sun=6
+  for (const [date, day] of Object.entries(DATA.leads.daily)) {
+    if (date < dateFrom || date > dateTo) continue;
+    const d = new Date(date);
+    const idx = (d.getDay()+6)%7;
+    dow[idx] += daily === 'leads' ? (day.t||0) : 0;
+  }
+  if (daily === 'deals') {
+    for (const [date, day] of Object.entries(DATA.deals.daily)) {
+      if (date < dateFrom || date > dateTo) continue;
+      const d = new Date(date);
+      const idx = (d.getDay()+6)%7;
+      dow[idx] += day.t||0;
+    }
+  }
+  const max = Math.max(...dow, 1);
+  const headers = DOW.map(d => `<div class="hm-header">${d}</div>`).join('');
+  const cells = dow.map((v,i) => {
+    const intensity = v/max;
+    const bg = daily==='leads'
+      ? `rgba(88,166,255,${0.1+intensity*0.85})`
+      : `rgba(163,113,247,${0.1+intensity*0.85})`;
+    return `<div class="hm-cell" style="background:${bg}">${fmt(v)}</div>`;
+  }).join('');
+  el.innerHTML = `<div class="hm-label"></div>${headers}<div class="hm-label">Всего</div>${cells}`;
+}
+
+function renderCompare(containerId, metrics) {
+  document.getElementById(containerId).innerHTML = metrics.map(({label, cur, prev, money}) => {
+    const diff = cur - prev;
+    const pctChange = prev ? Math.round(diff/prev*100) : 0;
+    let cls = 'delta-flat', arrow = '→';
+    if (diff > 0) { cls='delta-up'; arrow='↑'; }
+    if (diff < 0) { cls='delta-down'; arrow='↓'; }
+    return `<div class="compare-card">
+      <div class="compare-label">${label}</div>
+      <div class="compare-vals">
+        <span class="compare-cur">${money?fmtMoney(cur):fmt(cur)}</span>
+        <span class="compare-prev">vs ${money?fmtMoney(prev):fmt(prev)}</span>
+        <span class="compare-delta ${cls}">${arrow} ${Math.abs(pctChange)}%</span>
+      </div>
+    </div>`;
+  }).join('');
+}
+
 // ── LEADS ──
 function renderLeads() {
-  const agg = aggregateLeads();
+  const agg = aggregateLeads(dateFrom, dateTo);
+  const pp = prevPeriod();
+  const aggPrev = aggregateLeads(pp.from, pp.to);
   const meta = DATA.meta;
   const s = agg.s;
 
-  const inWork = s['IN_PROCESS'] || 0;
-  const recorded = (s['UC_W36M8K']||0) + (s['UC_CI0W8O']||0) + (s['UC_TD7XTT']||0);
-  const came = s['CONVERTED'] || 0;
-  const junk = (s['JUNK']||0) + (s['1']||0);
-  const notReached = s['PROCESSED'] || 0;
-  const condRefusal = s['3'] || 0;
+  const inWork   = s['IN_PROCESS']||0;
+  const recorded = (s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
+  const came     = s['CONVERTED']||0;
+  const junk     = (s['JUNK']||0)+(s['1']||0);
+  const notReach = s['PROCESSED']||0;
+  const condRef  = s['3']||0;
+  const canceled = s['UC_KXIWFH']||0;
+  const notRec   = s['UC_I0XLWE']||0;
+
+  const prevCame = aggPrev.s['CONVERTED']||0;
+  const prevRec  = (aggPrev.s['UC_W36M8K']||0)+(aggPrev.s['UC_CI0W8O']||0)+(aggPrev.s['UC_TD7XTT']||0);
+
+  renderCompare('leads-compare', [
+    { label:'Всего лидов',    cur:Math.round(agg.t),    prev:Math.round(aggPrev.t) },
+    { label:'Записаны',       cur:Math.round(recorded),  prev:Math.round(prevRec) },
+    { label:'Пришли',         cur:Math.round(came),      prev:Math.round(prevCame) },
+    { label:'Некачественные', cur:Math.round(junk),      prev:Math.round(aggPrev.s['JUNK']||0)+(aggPrev.s['1']||0) },
+  ]);
 
   document.getElementById('leads-cards').innerHTML =
-    renderCard('', 'Всего лидов', fmt(agg.t), 'accent') +
-    renderCard('', 'Взяты в работу', fmt(inWork), '', pct(inWork, agg.t) + ' от всех') +
-    renderCard('', 'Недозвон', fmt(notReached), 'orange') +
-    renderCard('', 'Не записан', fmt(s['UC_I0XLWE']||0), '') +
-    renderCard('', 'Отменил запись', fmt(s['UC_KXIWFH']||0), '') +
-    renderCard('', 'Записан', fmt(recorded), 'green', pct(recorded, agg.t) + ' от всех') +
-    renderCard('', 'Условный отказ', fmt(condRefusal), '') +
-    renderCard('', 'Пришёл', fmt(came), 'green', pct(came, agg.t) + ' конверсия') +
-    renderCard('', 'Некачественный', fmt(junk), 'red', pct(junk, agg.t) + ' от всех');
+    renderCard('Всего лидов',     fmt(agg.t),       'accent') +
+    renderCard('Взяты в работу',  fmt(inWork),       '', pct(inWork,agg.t)+' от всех') +
+    renderCard('Недозвон',        fmt(notReach),     'orange') +
+    renderCard('Не записан',      fmt(notRec),       '') +
+    renderCard('Отменил запись',  fmt(canceled),     '') +
+    renderCard('Записан',         fmt(recorded),     'green', pct(recorded,agg.t)+' от всех') +
+    renderCard('Условный отказ',  fmt(condRef),      '') +
+    renderCard('Пришёл',          fmt(came),         'green', pct(came,agg.t)+' конверсия') +
+    renderCard('Некачественный',  fmt(junk),         'red',   pct(junk,agg.t)+' от всех');
 
   renderFunnel(document.getElementById('leads-funnel'), [
-    ['Всего лидов', agg.t],
-    ['Взяты в работу', inWork],
-    ['Недозвон', notReached],
-    ['Записан', recorded],
-    ['Пришёл', came],
+    ['Всего лидов',    agg.t,     null],
+    ['Взяты в работу', inWork,    agg.t],
+    ['Записан',        recorded,  inWork],
+    ['Подтверждён',    (s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0), recorded],
+    ['Пришёл',         came,      recorded],
   ], agg.t);
 
   renderCityBars(document.getElementById('leads-cities'), agg.c);
 
-  const statusOrder = meta.lead_status_order || Object.keys(s);
-  const donutLabels = [], donutVals = [];
-  for (const sid of statusOrder) {
-    if (s[sid]) { donutLabels.push(meta.lead_statuses[sid] || sid); donutVals.push(s[sid]); }
+  // Sources
+  const srcNames = meta.sources||{};
+  const srcNamed = {};
+  for (const [id,cnt] of Object.entries(agg.src||{})) {
+    srcNamed[srcNames[id]||'Источник '+id] = cnt;
   }
-  renderDonut('leads-donut', donutLabels, donutVals);
+  renderCityBars(document.getElementById('leads-sources'), srcNamed);
 
-  // Operator table
+  const statusOrder = meta.lead_status_order||Object.keys(s);
+  const dLabels=[], dVals=[];
+  for (const sid of statusOrder) {
+    if (s[sid]) { dLabels.push(meta.lead_statuses[sid]||sid); dVals.push(Math.round(s[sid])); }
+  }
+  renderDonut('leads-donut', dLabels, dVals);
+
+  renderHeatmap(document.getElementById('leads-heatmap'), 'leads');
+
+  // Operator table sorted by conversion %
   const ops = aggregateOperators('leads');
-  const tbody = document.getElementById('leads-op-table');
-  const users = meta.users || {};
-  const rows = Object.entries(ops).sort((a,b)=>b[1].t-a[1].t).slice(0,20);
-  tbody.innerHTML = rows.map(([id, d]) => {
-    const name = users[id] || 'Оператор ' + id;
-    const rec = (d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0);
-    const conv = d.s['CONVERTED'] || 0;
-    const junk2 = (d.s['JUNK']||0)+(d.s['1']||0);
-    const convPct = d.t ? Math.round(conv/d.t*100) : 0;
-    return `<tr>
-      <td>${name}</td>
-      <td><strong>${fmt(d.t)}</strong></td>
-      <td>${fmt(d.s['IN_PROCESS']||0)}</td>
-      <td>${fmt(rec)}</td>
-      <td><span class="badge badge-green">${fmt(conv)}</span></td>
-      <td><span class="badge badge-red">${fmt(junk2)}</span></td>
-      <td><span class="badge badge-blue">${convPct}%</span></td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+  const users = meta.users||{};
+  const rows = Object.entries(ops)
+    .map(([id,d]) => {
+      const rec2  = (d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0);
+      const conv2 = d.s['CONVERTED']||0;
+      const junk2 = (d.s['JUNK']||0)+(d.s['1']||0);
+      return { id, d, name: users[id]||'Оператор '+id, rec:rec2, conv:conv2, junk:junk2,
+               convPct: d.t ? conv2/d.t*100 : 0 };
+    })
+    .filter(r => r.d.t > 0)
+    .sort((a,b) => b.convPct - a.convPct);
+
+  document.getElementById('leads-op-table').innerHTML = rows.slice(0,20).map((r,i) => `<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td>${r.name}</td>
+    <td><strong>${fmt(r.d.t)}</strong></td>
+    <td>${fmt(r.d.s['IN_PROCESS']||0)}</td>
+    <td>${fmt(r.rec)}</td>
+    <td><span class="badge badge-green">${fmt(r.conv)}</span></td>
+    <td><span class="badge badge-red">${fmt(r.junk)}</span></td>
+    <td><span class="badge badge-blue">${Math.round(r.convPct)}%</span></td>
+  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
 }
 
 // ── DEALS ──
 function renderDeals() {
-  const agg = aggregateDeals();
+  const agg = aggregateDeals(dateFrom, dateTo);
+  const pp = prevPeriod();
+  const aggPrev = aggregateDeals(pp.from, pp.to);
   const meta = DATA.meta;
   const g = agg.g;
 
-  const came = g['NEW'] || 0;
-  const tmAssigned = g['PREPARATION'] || 0;
-  const presentation = (g['PREPAYMENT_INVOICE']||0) + (g['PREPAYMENT_INVOIC']||0);
-  const exam = (g['EXECUTING']||0) + (g['UC_MLCFYZ']||0);
-  const closing = (g['FINAL_INVOICE']||0) + (g['UC_IA4RQ3']||0);
-  const finance = (g['1']||0) + (g['UC_FCWL21']||0) + (g['6']||0) + (g['7']||0) + (g['UC_MSD2TV']||0) + (g['UC_LNVU9C']||0);
-  const won = g['WON'] || 0;
-  const lost = (g['LOSE']||0) + (g['APOLOGY']||0) + (g['UC_ZFGB34']||0);
+  const came        = g['NEW']||0;
+  const tmAssigned  = (g['PREPARATION']||0)+(g['6']||0)+(g['UC_LNVU9C']||0);
+  const presentation= (g['PREPAYMENT_INVOICE']||0)+(g['PREPAYMENT_INVOIC']||0);
+  const exam        = (g['EXECUTING']||0)+(g['UC_MLCFYZ']||0);
+  const closing     = (g['FINAL_INVOICE']||0)+(g['UC_IA4RQ3']||0);
+  const finance     = (g['1']||0)+(g['UC_FCWL21']||0)+(g['7']||0)+(g['UC_MSD2TV']||0);
+  const won         = g['WON']||0;
+  const lost        = (g['LOSE']||0)+(g['APOLOGY']||0)+(g['UC_ZFGB34']||0);
+
+  const prevWon = aggPrev.g['WON']||0;
+
+  renderCompare('deals-compare', [
+    { label:'Всего сделок',    cur:agg.t,        prev:aggPrev.t },
+    { label:'Успешных',        cur:won,          prev:prevWon },
+    { label:'Выручка',         cur:agg.r,        prev:aggPrev.r, money:true },
+    { label:'Провалено',       cur:lost,         prev:(aggPrev.g['LOSE']||0)+(aggPrev.g['APOLOGY']||0) },
+  ]);
+
+  const avgDeal = won > 0 ? agg.r/won : 0;
 
   document.getElementById('deals-cards').innerHTML =
-    renderCard('', 'Всего сделок', fmt(agg.t), 'accent') +
-    renderCard('', 'Пришел', fmt(came), '', pct(came, agg.t) + ' от всех') +
-    renderCard('', 'Назначен ТМ', fmt(tmAssigned), '') +
-    renderCard('', 'На презентации', fmt(presentation), '') +
-    renderCard('', 'На осмотре', fmt(exam), '') +
-    renderCard('', 'На закрытие', fmt(closing), '') +
-    renderCard('', 'Фин отдел', fmt(finance), 'orange') +
-    renderCard('', 'Сделка успешна', fmt(won), 'green', pct(won, agg.t) + ' конверсия') +
-    renderCard('', 'Провалено', fmt(lost), 'red') +
-    renderCard('', 'Выручка (WON)', fmtMoney(agg.r), 'green');
+    renderCard('Всего сделок',   fmt(agg.t),       'accent') +
+    renderCard('Пришел',         fmt(came),         '', pct(came,agg.t)+' от всех') +
+    renderCard('Назначен ТМ',    fmt(tmAssigned),   '') +
+    renderCard('На презентации', fmt(presentation), '') +
+    renderCard('На осмотре',     fmt(exam),         '') +
+    renderCard('На закрытие',    fmt(closing),      '') +
+    renderCard('Фин отдел',      fmt(finance),      'orange') +
+    renderCard('Успешна',        fmt(won),          'green', pct(won,agg.t)+' конверсия') +
+    renderCard('Провалено',      fmt(lost),         'red') +
+    renderCard('Выручка',        fmtMoney(agg.r),   'green') +
+    renderCard('Средний чек',    fmtMoney(avgDeal),  'teal', 'по успешным сделкам');
+
+  // Finance cards
+  document.getElementById('deals-finance-cards').innerHTML =
+    renderCard('С рассрочкой',           fmt(agg.inst),          'purple', pct(agg.inst,agg.t)+' от всех') +
+    renderCard('Остаток по рассрочкам',  fmtMoney(agg.inst_r),   'orange') +
+    renderCard('Согласованных планов',   fmt(agg.plan),          'teal',   pct(agg.plan,agg.t)+' от всех') +
+    renderCard('Сумма планов лечения',   fmtMoney(agg.plan_r),   'green');
 
   renderFunnel(document.getElementById('deals-funnel'), [
-    ['Всего сделок', agg.t],
-    ['Пришел', came],
-    ['Назначен ТМ', tmAssigned],
-    ['На презентации', presentation],
-    ['На осмотре', exam],
-    ['На закрытие', closing],
-    ['Фин отдел', finance],
-    ['Успешно', won],
+    ['Всего сделок',   agg.t,        null],
+    ['Пришел',         came,         agg.t],
+    ['Назначен ТМ',    tmAssigned,   came],
+    ['На презентации', presentation, tmAssigned],
+    ['На осмотре',     exam,         presentation],
+    ['На закрытие',    closing,      exam],
+    ['Фин отдел',      finance,      closing],
+    ['Успешно',        won,          agg.t],
   ], agg.t);
 
   renderCityBars(document.getElementById('deals-cities'), agg.c);
 
-  const stageOrder = meta.deal_stage_order || Object.keys(g);
-  const donutLabels = [], donutVals = [];
-  for (const sid of stageOrder) {
-    if (g[sid]) { donutLabels.push(meta.deal_stages[sid] || sid); donutVals.push(g[sid]); }
+  // Average deal value by city
+  const cityRevenue = {}, cityCount = {};
+  for (const [, day] of getFilteredDays(DATA.deals.daily)) {
+    for (const [city, cnt] of Object.entries(day.c||{})) {
+      cityCount[city] = (cityCount[city]||0) + cnt;
+      const scale = day.t ? cnt/day.t : 0;
+      cityRevenue[city] = (cityRevenue[city]||0) + (day.r||0)*scale;
+    }
   }
-  renderDonut('deals-donut', donutLabels, donutVals);
+  const cityAvg = {};
+  for (const city of Object.keys(cityRevenue)) {
+    if (cityCount[city] > 0) cityAvg[city] = cityRevenue[city]/cityCount[city];
+  }
+  renderCityBars(document.getElementById('deals-cities-avg'), cityAvg, 'money');
 
-  // Operator table
+  const stageOrder = meta.deal_stage_order||Object.keys(g);
+  const dLabels=[], dVals=[];
+  for (const sid of stageOrder) {
+    if (g[sid]) { dLabels.push(meta.deal_stages[sid]||sid); dVals.push(g[sid]); }
+  }
+  renderDonut('deals-donut', dLabels, dVals);
+
+  renderHeatmap(document.getElementById('deals-heatmap'), 'deals');
+
+  // Operator table sorted by conversion %
   const ops = aggregateOperators('deals');
-  const tbody = document.getElementById('deals-op-table');
-  const users = meta.users || {};
-  const rows = Object.entries(ops).sort((a,b)=>b[1].t-a[1].t).slice(0,20);
-  tbody.innerHTML = rows.map(([id, d]) => {
-    const name = users[id] || 'Оператор ' + id;
-    const won2 = d.g['WON'] || 0;
-    const convPct = d.t ? Math.round(won2/d.t*100) : 0;
-    return `<tr>
-      <td>${name}</td>
-      <td><strong>${fmt(d.t)}</strong></td>
-      <td>${fmt(d.g['NEW']||0)}</td>
-      <td>${fmt(d.g['PREPARATION']||0)}</td>
-      <td><span class="badge badge-green">${fmt(won2)}</span></td>
-      <td>${fmtMoney(d.r)}</td>
-      <td><span class="badge badge-blue">${convPct}%</span></td>
-    </tr>`;
-  }).join('') || '<tr><td colspan="7" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+  const users = meta.users||{};
+  const rows = Object.entries(ops)
+    .map(([id,d]) => {
+      const won2 = d.g['WON']||0;
+      return { id, d, name: users[id]||'Оператор '+id, won:won2,
+               convPct: d.t ? won2/d.t*100 : 0 };
+    })
+    .filter(r => r.d.t > 0)
+    .sort((a,b) => b.convPct - a.convPct);
+
+  document.getElementById('deals-op-table').innerHTML = rows.slice(0,20).map((r,i) => `<tr>
+    <td style="color:var(--muted)">${i+1}</td>
+    <td>${r.name}</td>
+    <td><strong>${fmt(r.d.t)}</strong></td>
+    <td>${fmt(r.d.g['NEW']||0)}</td>
+    <td>${fmt((r.d.g['PREPARATION']||0)+(r.d.g['6']||0))}</td>
+    <td><span class="badge badge-green">${fmt(r.won)}</span></td>
+    <td>${fmtMoney(r.d.r)}</td>
+    <td><span class="badge badge-blue">${Math.round(r.convPct)}%</span></td>
+  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+}
+
+// ── OVERVIEW ──
+function renderOverview() {
+  const lm = DATA.leads.monthly||{};
+  const dm = DATA.deals.monthly||{};
+  const allMonths = Array.from(new Set([...Object.keys(lm),...Object.keys(dm)])).sort().slice(-18);
+
+  const lVals = allMonths.map(m => lm[m]||0);
+  const dVals = allMonths.map(m => dm[m]||0);
+  const cVals = allMonths.map((m,i) => dVals[i]&&lVals[i] ? Math.round(dVals[i]/lVals[i]*100) : 0);
+
+  renderLineChart('trend-chart', allMonths, [
+    { label:'Лиды', data:lVals, borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,.1)', tension:.3, fill:true },
+    { label:'Сделки', data:dVals, borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,.1)', tension:.3, fill:true },
+  ]);
+
+  renderLineChart('conv-chart', allMonths, [
+    { label:'Конверсия лид→сделка %', data:cVals, borderColor:'#a371f7', backgroundColor:'rgba(163,113,247,.1)', tension:.3, fill:true },
+  ]);
+
+  // Summary cards
+  const totalLeads = Object.values(lm).reduce((a,b)=>a+b,0);
+  const totalDeals = Object.values(dm).reduce((a,b)=>a+b,0);
+  const convRate = totalLeads ? Math.round(totalDeals/totalLeads*100) : 0;
+
+  const last3Months = allMonths.slice(-3);
+  const recentLeads = last3Months.reduce((a,m)=>a+(lm[m]||0),0);
+  const recentDeals = last3Months.reduce((a,m)=>a+(dm[m]||0),0);
+  const recentConv  = recentLeads ? Math.round(recentDeals/recentLeads*100) : 0;
+
+  document.getElementById('conv-cards').innerHTML =
+    renderCard('Всего лидов (18 мес)',    fmt(totalLeads),  'accent') +
+    renderCard('Всего сделок (18 мес)',   fmt(totalDeals),  'green') +
+    renderCard('Конверсия лид→сделка',   convRate+'%',     'purple', 'за всё время') +
+    renderCard('Конверсия (посл. 3 мес)', recentConv+'%',  'teal',   recentLeads ? fmt(recentDeals)+' из '+fmt(recentLeads) : '');
+}
+
+function getFilteredDays(daily) {
+  return Object.entries(daily).filter(([d]) => d >= dateFrom && d <= dateTo);
 }
 
 function render() {
   if (!DATA) return;
-  if (currentTab === 'leads') renderLeads();
-  else renderDeals();
+  if (currentTab==='leads')    renderLeads();
+  else if (currentTab==='deals')   renderDeals();
+  else if (currentTab==='overview') renderOverview();
 }
 
-// Auto-load if already authenticated
-if (sessionStorage.getItem('auth') === '1') loadData();
+if (sessionStorage.getItem('auth')==='1') loadData();
 </script>
 </body>
 </html>

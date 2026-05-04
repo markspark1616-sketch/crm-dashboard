@@ -2,7 +2,6 @@
 """Fetches data from Bitrix24 and aggregates into data/dashboard.json"""
 import os, json, re, time, urllib.request, urllib.parse
 from datetime import datetime, timedelta
-from collections import defaultdict
 
 WEBHOOK_URL = os.environ.get('BITRIX_WEBHOOK_URL', '').rstrip('/') + '/'
 DATA_FILE = 'data/dashboard.json'
@@ -111,6 +110,12 @@ def normalize_stage(stage_id):
     return stage_id.split(':', 1)[1] if ':' in stage_id else stage_id
 
 
+def parse_money(val):
+    if not val:
+        return 0.0
+    return float(str(val).split('|')[0] or '0')
+
+
 def main():
     if not WEBHOOK_URL or WEBHOOK_URL == '/':
         print("ERROR: BITRIX_WEBHOOK_URL not set")
@@ -127,21 +132,30 @@ def main():
     for u in r.get('result', []):
         users[str(u['ID'])] = f"{u.get('NAME','')} {u.get('LAST_NAME','')}".strip()
 
+    # Sources
+    print("Sources...")
+    source_names = {}
+    r = api_get('crm.status.list', {'filter[ENTITY_ID]': 'SOURCE'})
+    for s in r.get('result', []):
+        source_names[s['STATUS_ID']] = s['NAME']
+
     # Leads
     print("Leads...")
     leads = fetch_all('crm.lead.list',
-        ['ID', 'STATUS_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'TITLE'], date_from)
+        ['ID', 'STATUS_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'TITLE', 'SOURCE_ID'], date_from)
 
     # Deals
     print("Deals...")
     deals = fetch_all('crm.deal.list',
-        ['ID', 'STAGE_ID', 'CATEGORY_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'OPPORTUNITY'], date_from)
+        ['ID', 'STAGE_ID', 'CATEGORY_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'OPPORTUNITY',
+         'UF_CRM_1751552162', 'UF_CRM_1751552078', 'UF_CRM_1751552023'], date_from)
 
     print(f"Aggregating {len(leads)} leads, {len(deals)} deals...")
 
     # Aggregate leads by day
     lead_daily = {}
     lead_op_monthly = {}
+    lead_monthly = {}  # for trend chart
 
     for lead in leads:
         date = lead['DATE_CREATE'][:10]
@@ -149,11 +163,15 @@ def main():
         status = lead.get('STATUS_ID', 'unknown')
         city = extract_city(lead.get('TITLE', ''))
         op = str(lead.get('ASSIGNED_BY_ID', ''))
+        src = lead.get('SOURCE_ID', '') or 'unknown'
 
-        d = lead_daily.setdefault(date, {'t': 0, 's': {}, 'c': {}})
+        d = lead_daily.setdefault(date, {'t': 0, 's': {}, 'c': {}, 'src': {}})
         d['t'] += 1
         d['s'][status] = d['s'].get(status, 0) + 1
         d['c'][city] = d['c'].get(city, 0) + 1
+        d['src'][src] = d['src'].get(src, 0) + 1
+
+        lead_monthly[month] = lead_monthly.get(month, 0) + 1
 
         if op:
             m = lead_op_monthly.setdefault(month, {})
@@ -164,6 +182,7 @@ def main():
     # Aggregate deals by day
     deal_daily = {}
     deal_op_monthly = {}
+    deal_monthly = {}  # for trend chart
 
     for deal in deals:
         date = deal['DATE_CREATE'][:10]
@@ -174,11 +193,25 @@ def main():
         op = str(deal.get('ASSIGNED_BY_ID', ''))
         revenue = float(deal.get('OPPORTUNITY') or 0)
 
-        d = deal_daily.setdefault(date, {'t': 0, 'g': {}, 'c': {}, 'r': 0})
+        inst_flag = deal.get('UF_CRM_1751552162', '') or ''
+        inst_balance = parse_money(deal.get('UF_CRM_1751552078'))
+        plan_agreed = parse_money(deal.get('UF_CRM_1751552023'))
+
+        d = deal_daily.setdefault(date, {'t': 0, 'g': {}, 'c': {}, 'r': 0,
+                                         'inst': 0, 'inst_r': 0, 'plan': 0, 'plan_r': 0})
         d['t'] += 1
         d['g'][stage_code] = d['g'].get(stage_code, 0) + 1
         d['c'][city] = d['c'].get(city, 0) + 1
         d['r'] += revenue
+
+        if inst_flag:
+            d['inst'] += 1
+            d['inst_r'] += inst_balance
+        if plan_agreed > 0:
+            d['plan'] += 1
+            d['plan_r'] += plan_agreed
+
+        deal_monthly[month] = deal_monthly.get(month, 0) + 1
 
         if op:
             m = deal_op_monthly.setdefault(month, {})
@@ -197,15 +230,18 @@ def main():
             'deal_stages': DEAL_STAGE_NAMES,
             'deal_stage_order': DEAL_STAGE_ORDER,
             'categories': CATEGORY_CITIES,
+            'sources': source_names,
         },
         'leads': {
             'total': len(leads),
             'daily': lead_daily,
+            'monthly': lead_monthly,
             'operators': lead_op_monthly,
         },
         'deals': {
             'total': len(deals),
             'daily': deal_daily,
+            'monthly': deal_monthly,
             'operators': deal_op_monthly,
         },
     }
