@@ -7,6 +7,19 @@ WEBHOOK_URL = os.environ.get('BITRIX_WEBHOOK_URL', '').rstrip('/') + '/'
 DATA_FILE   = 'data/dashboard.json'
 DATE_FROM   = '2026-01-01'
 
+# Only these 3 sources are shown in the dashboard
+ALLOWED_SOURCES = {'27', '65', '84'}  # Victory контекст, Victory VK, Victory парсинг
+
+# Deal categories (pipelines) to exclude entirely
+HIDDEN_CATEGORIES = {'4', '5', '6', '12', '15', '16', '20', '22'}
+# Нижний Новгород, Ростов, Краснодар, Новосибирск (x2), НВСБ доп, Дожим, Улан-Удэ
+
+# Lead cities (from TITLE parsing) to exclude entirely
+HIDDEN_LEAD_CITIES = {
+    'Нижний Новгород', 'Ростов', 'Краснодар',
+    'Новосибирск', 'Дожим', 'Улан-Удэ',
+}
+
 CITY_MAP = {
     'SPb': 'Санкт-Петербург', 'Spb': 'Санкт-Петербург',
     'NNov': 'Нижний Новгород', 'Nnov': 'Нижний Новгород',
@@ -125,6 +138,30 @@ def parse_money(val):
         return 0.0
 
 
+def md_lead_init():
+    return {'t': 0, 'pcp': 0, 'rec': 0, 'came': 0, 'junk': 0, 'miss': 0}
+
+
+def md_deal_init():
+    return {'won': 0, 'won_r': 0.0, 'inst_r': 0.0, 'plan_r': 0.0}
+
+
+def update_lead_md(md, status):
+    md['t'] += 1
+    # ПЦП: все кто хоть раз был записан (включая пришедших) или не записан/отменил
+    if status in ('UC_I0XLWE', 'UC_KXIWFH', 'UC_W36M8K', 'UC_CI0W8O', 'UC_TD7XTT', 'CONVERTED'):
+        md['pcp'] += 1
+    # Записан: все кто был когда-либо записан (включая пришедших — они тоже были записаны)
+    if status in ('UC_W36M8K', 'UC_CI0W8O', 'UC_TD7XTT', 'CONVERTED'):
+        md['rec'] += 1
+    if status == 'CONVERTED':
+        md['came'] += 1
+    if status in ('JUNK', '1'):
+        md['junk'] += 1
+    if status == 'PROCESSED':
+        md['miss'] += 1
+
+
 def main():
     if not WEBHOOK_URL or WEBHOOK_URL == '/':
         print("ERROR: BITRIX_WEBHOOK_URL not set")
@@ -136,16 +173,31 @@ def main():
     # Users
     print("Users...")
     users = {}
-    r = api_get('user.get', {'select[0]': 'ID', 'select[1]': 'NAME', 'select[2]': 'LAST_NAME'})
-    for u in r.get('result', []):
-        users[str(u['ID'])] = f"{u.get('NAME','')} {u.get('LAST_NAME','')}".strip()
+    start = 0
+    while True:
+        r = api_get('user.get', {
+            'select[0]': 'ID', 'select[1]': 'NAME', 'select[2]': 'LAST_NAME',
+            'start': start
+        })
+        for u in r.get('result', []):
+            users[str(u['ID'])] = f"{u.get('NAME','')} {u.get('LAST_NAME','')}".strip()
+        if 'next' in r:
+            start = r['next']
+            time.sleep(0.3)
+        else:
+            break
+    print(f"  {len(users)} users loaded")
 
-    # Sources
+    # Sources — only allowed ones
     print("Sources...")
     source_names = {}
     r = api_get('crm.status.list', {'filter[ENTITY_ID]': 'SOURCE'})
     for s in r.get('result', []):
-        source_names[s['STATUS_ID']] = s['NAME']
+        if s['STATUS_ID'] in ALLOWED_SOURCES:
+            source_names[s['STATUS_ID']] = s['NAME']
+
+    # Visible categories (for meta)
+    visible_categories = {k: v for k, v in CATEGORY_CITIES.items() if k not in HIDDEN_CATEGORIES}
 
     # Leads
     print("Leads...")
@@ -153,8 +205,8 @@ def main():
         ['ID', 'STATUS_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'TITLE', 'SOURCE_ID'],
         {'filter[>=DATE_CREATE]': DATE_FROM})
 
-    # Deals (historical)
-    print("Deals (historical)...")
+    # Deals
+    print("Deals...")
     deals = fetch_all('crm.deal.list',
         ['ID', 'STAGE_ID', 'CATEGORY_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE',
          'DATE_MODIFY', 'OPPORTUNITY',
@@ -164,42 +216,39 @@ def main():
     print(f"Aggregating {len(leads)} leads, {len(deals)} deals...")
 
     # ── Leads aggregation ──
-    lead_daily   = {}
-    lead_op_monthly = {}
-    lead_monthly_detail = {}  # for conversion table
+    lead_daily       = {}
+    lead_op_monthly  = {}
+    # monthly_detail[month][city_or__total] = md_lead_init()
+    lead_monthly_detail = {}
 
+    skipped_leads = 0
     for lead in leads:
+        city = extract_city(lead.get('TITLE', ''))
+        if city in HIDDEN_LEAD_CITIES:
+            skipped_leads += 1
+            continue
+
         date   = lead['DATE_CREATE'][:10]
         month  = date[:7]
         status = lead.get('STATUS_ID', 'unknown')
-        city   = extract_city(lead.get('TITLE', ''))
         op     = str(lead.get('ASSIGNED_BY_ID', ''))
-        src    = lead.get('SOURCE_ID', '') or 'unknown'
+        src    = lead.get('SOURCE_ID', '') or ''
 
         # daily
         d = lead_daily.setdefault(date, {'t': 0, 's': {}, 'c': {}, 'src': {}})
         d['t'] += 1
         d['s'][status] = d['s'].get(status, 0) + 1
         d['c'][city]   = d['c'].get(city, 0) + 1
-        d['src'][src]  = d['src'].get(src, 0) + 1
+        if src in ALLOWED_SOURCES:
+            d['src'][src] = d['src'].get(src, 0) + 1
 
-        # monthly detail for conversion table
-        md = lead_monthly_detail.setdefault(month, {
-            't': 0, 'pcp': 0, 'rec': 0, 'came': 0, 'junk': 0, 'miss': 0,
-            'src': {}
-        })
-        md['t'] += 1
-        if status in ('UC_I0XLWE', 'UC_KXIWFH', 'UC_W36M8K', 'UC_CI0W8O', 'UC_TD7XTT', 'CONVERTED'):
-            md['pcp'] += 1
-        if status in ('UC_W36M8K', 'UC_CI0W8O', 'UC_TD7XTT'):
-            md['rec'] += 1
-        if status == 'CONVERTED':
-            md['came'] += 1
-        if status in ('JUNK', '1'):
-            md['junk'] += 1
-        if status == 'PROCESSED':
-            md['miss'] += 1
-        md['src'][src] = md['src'].get(src, 0) + 1
+        # monthly detail — total and per city
+        if month not in lead_monthly_detail:
+            lead_monthly_detail[month] = {'_total': md_lead_init()}
+        if city not in lead_monthly_detail[month]:
+            lead_monthly_detail[month][city] = md_lead_init()
+        update_lead_md(lead_monthly_detail[month]['_total'], status)
+        update_lead_md(lead_monthly_detail[month][city], status)
 
         # operator monthly
         if op:
@@ -208,30 +257,37 @@ def main():
             op_d['t'] += 1
             op_d['s'][status] = op_d['s'].get(status, 0) + 1
 
-    # ── Deals aggregation ──
-    deal_daily      = {}
-    deal_op_monthly = {}
-    deal_monthly_detail = {}  # for conversion table
-    pipeline        = {}      # current active deals
-    at_risk         = []      # active deals not modified in 30+ days
-    now             = datetime.utcnow()
-    risk_threshold  = now - timedelta(days=30)
+    print(f"  Leads skipped (hidden cities): {skipped_leads}")
 
+    # ── Deals aggregation ──
+    deal_daily       = {}
+    deal_op_monthly  = {}
+    deal_monthly_detail = {}
+    pipeline  = {}
+    at_risk   = []
+    now       = datetime.utcnow()
+    risk_threshold = now - timedelta(days=30)
+
+    skipped_deals = 0
     for deal in deals:
+        cat = str(deal.get('CATEGORY_ID', '0'))
+        if cat in HIDDEN_CATEGORIES:
+            skipped_deals += 1
+            continue
+
         date       = deal['DATE_CREATE'][:10]
         month      = date[:7]
         stage_raw  = deal.get('STAGE_ID', '')
         stage_code = normalize_stage(stage_raw)
-        cat        = str(deal.get('CATEGORY_ID', '0'))
         city       = CATEGORY_CITIES.get(cat, f'Категория {cat}')
         op         = str(deal.get('ASSIGNED_BY_ID', ''))
         revenue    = float(deal.get('OPPORTUNITY') or 0)
-        date_mod   = deal.get('DATE_MODIFY', '')[:10] if deal.get('DATE_MODIFY') else date
+        date_mod   = (deal.get('DATE_MODIFY', '') or '')[:10] or date
 
-        inst_flag  = deal.get('UF_CRM_1751552162', '') or ''
-        inst_bal   = parse_money(deal.get('UF_CRM_1751552078'))
-        plan_agr   = parse_money(deal.get('UF_CRM_1751552023'))
-        is_won     = (stage_code == 'WON')
+        inst_flag = deal.get('UF_CRM_1751552162', '') or ''
+        inst_bal  = parse_money(deal.get('UF_CRM_1751552078'))
+        plan_agr  = parse_money(deal.get('UF_CRM_1751552023'))
+        is_won    = (stage_code == 'WON')
 
         # daily
         d = deal_daily.setdefault(date, {
@@ -251,15 +307,18 @@ def main():
             d['plan']   += 1
             d['plan_r'] += plan_agr
 
-        # monthly detail
-        md = deal_monthly_detail.setdefault(month, {
-            'won': 0, 'won_r': 0, 'inst_r': 0, 'plan_r': 0,
-        })
-        if is_won:
-            md['won']   += 1
-            md['won_r'] += revenue
-        md['inst_r'] += inst_bal
-        md['plan_r'] += plan_agr
+        # monthly detail — total and per city
+        if month not in deal_monthly_detail:
+            deal_monthly_detail[month] = {'_total': md_deal_init()}
+        if city not in deal_monthly_detail[month]:
+            deal_monthly_detail[month][city] = md_deal_init()
+
+        for md in (deal_monthly_detail[month]['_total'], deal_monthly_detail[month][city]):
+            if is_won:
+                md['won']   += 1
+                md['won_r'] += revenue
+            md['inst_r'] += inst_bal
+            md['plan_r'] += plan_agr
 
         # operator monthly
         if op:
@@ -269,29 +328,25 @@ def main():
             op_d['r'] += revenue
             op_d['g'][stage_code] = op_d['g'].get(stage_code, 0) + 1
 
-        # pipeline (active stages, created after DATE_FROM)
+        # pipeline
         if stage_code in ACTIVE_STAGES:
             pg = pipeline.setdefault(stage_code, {'count': 0, 'sum': 0.0, 'plan_r': 0.0})
             pg['count'] += 1
             pg['sum']   += revenue
             pg['plan_r'] += plan_agr
 
-            # at risk: not modified in 30 days
             try:
                 mod_dt = datetime.strptime(date_mod, '%Y-%m-%d')
                 if mod_dt < risk_threshold:
                     at_risk.append({
-                        'id':       deal['ID'],
-                        'city':     city,
-                        'stage':    stage_code,
-                        'opp':      revenue,
-                        'mod':      date_mod,
+                        'id': deal['ID'], 'city': city, 'stage': stage_code,
+                        'opp': revenue, 'mod': date_mod,
                         'days_idle': (now.date() - mod_dt.date()).days,
                     })
             except Exception:
                 pass
 
-    # sort at_risk by days_idle desc, keep top 50
+    print(f"  Deals skipped (hidden cities): {skipped_deals}")
     at_risk.sort(key=lambda x: x['days_idle'], reverse=True)
     at_risk = at_risk[:50]
 
@@ -304,17 +359,17 @@ def main():
             'lead_status_order': LEAD_STATUS_ORDER,
             'deal_stages':       DEAL_STAGE_NAMES,
             'deal_stage_order':  DEAL_STAGE_ORDER,
-            'categories':        CATEGORY_CITIES,
+            'categories':        visible_categories,
             'sources':           source_names,
         },
         'leads': {
-            'total':          len(leads),
+            'total':          len(leads) - skipped_leads,
             'daily':          lead_daily,
             'monthly_detail': lead_monthly_detail,
             'operators':      lead_op_monthly,
         },
         'deals': {
-            'total':          len(deals),
+            'total':          len(deals) - skipped_deals,
             'daily':          deal_daily,
             'monthly_detail': deal_monthly_detail,
             'operators':      deal_op_monthly,
@@ -328,7 +383,7 @@ def main():
 
     size_kb = os.path.getsize(DATA_FILE) / 1024
     print(f"Saved {DATA_FILE} ({size_kb:.0f} KB)")
-    print(f"Pipeline active stages: {len(pipeline)}, At risk deals: {len(at_risk)}")
+    print(f"Pipeline active: {len(pipeline)} stages, At risk: {len(at_risk)} deals")
 
 
 if __name__ == '__main__':

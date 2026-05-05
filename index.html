@@ -321,6 +321,11 @@ tr:hover td{background:rgba(255,255,255,.02)}
 
     <!-- TAB 4: FUNNEL (monthly conversion table) -->
     <div class="tab-content" id="tab-funnel">
+      <div class="section-title">Город для анализа</div>
+      <div style="display:flex;align-items:center;gap:10px;margin-bottom:14px;background:var(--card);border:1px solid var(--border);border-radius:8px;padding:10px 16px">
+        <span style="font-size:12px;color:var(--muted)">Показать данные по:</span>
+        <div id="funnel-city-wrap"></div>
+      </div>
       <div class="section-title">Бюджет по месяцам (Траты на маркетинг)</div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
         <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Введите расходы на маркетинг по каждому месяцу для расчёта ДРР, ROMI и стоимости этапов</div>
@@ -624,7 +629,7 @@ function renderLeads(){
   const pp=prevPeriod();const aggP=aggLeads(pp.from,pp.to);
   const s=agg.s;
   const pcp=(s['UC_I0XLWE']||0)+(s['UC_KXIWFH']||0)+(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0)+(s['CONVERTED']||0);
-  const rec=(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
+  const rec=(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0)+(s['CONVERTED']||0);
   const confirmed=(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
   const came=s['CONVERTED']||0;
   const junk=(s['JUNK']||0)+(s['1']||0);
@@ -685,7 +690,7 @@ function renderLeads(){
     return{id,d,name:users[id]||'Оператор '+id,rec:rec2,came:came2,junk:junk2,pcp:pcp2,cp};
   }).filter(r=>r.d.t>0).sort((a,b)=>b.cp-a.cp);
 
-  document.getElementById('leads-op-table').innerHTML=rows.slice(0,20).map((r,i)=>`<tr>
+  document.getElementById('leads-op-table').innerHTML=rows.map((r,i)=>`<tr>
     <td style="color:var(--muted)">${i+1}</td><td>${r.name}</td>
     <td><strong>${fmt(r.d.t)}</strong></td>
     <td><span class="badge badge-purple">${fmt(r.pcp)}</span></td>
@@ -775,7 +780,7 @@ function renderDeals(){
     return{id,d,name:users[id]||'Оператор '+id,won:won2,cp};
   }).filter(r=>r.d.t>0).sort((a,b)=>b.cp-a.cp);
 
-  document.getElementById('deals-op-table').innerHTML=rows.slice(0,20).map((r,i)=>`<tr>
+  document.getElementById('deals-op-table').innerHTML=rows.map((r,i)=>`<tr>
     <td style="color:var(--muted)">${i+1}</td><td>${r.name}</td>
     <td><strong>${fmt(r.d.t)}</strong></td>
     <td>${fmt(r.d.g['NEW']||0)}</td>
@@ -791,9 +796,9 @@ function renderOverview(){
   const lmd=DATA.leads.monthly_detail||{};
   const dmd=DATA.deals.monthly_detail||{};
   const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort().slice(-12);
-  const lVals=months.map(m=>lmd[m]?.t||0);
-  const dVals=months.map(m=>dmd[m]?.won||0);
-  const wonR=months.map(m=>dmd[m]?.won_r||0);
+  const lVals=months.map(m=>lmd[m]?.['_total']?.t||0);
+  const dVals=months.map(m=>dmd[m]?.['_total']?.won||0);
+  const wonR=months.map(m=>dmd[m]?.['_total']?.won_r||0);
   const avgCheck=months.map((m,i)=>dVals[i]>0?Math.round(wonR[i]/dVals[i]):0);
   const cvVals=months.map((m,i)=>lVals[i]>0?Math.round(dVals[i]/lVals[i]*100):0);
 
@@ -808,11 +813,11 @@ function renderOverview(){
     {label:'CR Лид→Договор %',data:cvVals,borderColor:'#a371f7',backgroundColor:'rgba(163,113,247,.1)',tension:.3,fill:true},
   ]);
 
-  const totalL=Object.values(lmd).reduce((a,m)=>a+(m.t||0),0);
-  const totalW=Object.values(dmd).reduce((a,m)=>a+(m.won||0),0);
+  const totalL=Object.values(lmd).reduce((a,m)=>a+(m['_total']?.t||0),0);
+  const totalW=Object.values(dmd).reduce((a,m)=>a+(m['_total']?.won||0),0);
   const last3=months.slice(-3);
-  const l3L=last3.reduce((a,m)=>a+(lmd[m]?.t||0),0);
-  const l3W=last3.reduce((a,m)=>a+(dmd[m]?.won||0),0);
+  const l3L=last3.reduce((a,m)=>a+(lmd[m]?.['_total']?.t||0),0);
+  const l3W=last3.reduce((a,m)=>a+(dmd[m]?.['_total']?.won||0),0);
   document.getElementById('conv-cards').innerHTML=
     card('Лидов (с 01.01.2026)',fmt(totalL),'accent')+
     card('Договоров (WON)',fmt(totalW),'green')+
@@ -865,14 +870,19 @@ function renderOverview(){
 }
 
 // ── TAB 4: FUNNEL TABLE ──
-function getBudget(){try{return JSON.parse(localStorage.getItem('dtbudget')||'{}')}catch{return{}}}
+function getBudget(city){
+  try{const all=JSON.parse(localStorage.getItem('dtbudget')||'{}');return all[city||'_total']||{}}catch{return{}}
+}
 function saveBudget(){
+  const city=(document.getElementById('funnel-city')?.value)||'_total';
+  let all={};try{all=JSON.parse(localStorage.getItem('dtbudget')||'{}')}catch{}
   const budget={};
   document.querySelectorAll('.budget-inp').forEach(inp=>{
     const v=parseFloat(inp.value.replace(/\s/g,'').replace(',','.'));
     if(!isNaN(v)&&v>0)budget[inp.dataset.month]=v;
   });
-  localStorage.setItem('dtbudget',JSON.stringify(budget));
+  all[city]=budget;
+  localStorage.setItem('dtbudget',JSON.stringify(all));
   document.getElementById('budget-saved').style.display='inline';
   setTimeout(()=>document.getElementById('budget-saved').style.display='none',2000);
   renderFunnelTable();
@@ -882,7 +892,17 @@ function renderFunnelTab(){
   const lmd=DATA.leads.monthly_detail||{};
   const dmd=DATA.deals.monthly_detail||{};
   const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort();
-  const budget=getBudget();
+
+  // City selector (build once)
+  const cw=document.getElementById('funnel-city-wrap');
+  if(cw&&!cw.querySelector('select')){
+    const cities=new Set();
+    Object.values(lmd).forEach(m=>Object.keys(m).filter(k=>k!=='_total').forEach(c=>cities.add(c)));
+    cw.innerHTML=`<select id="funnel-city" onchange="renderFunnelTab()" style="padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;outline:none;cursor:pointer"><option value="_total">Все города</option>${[...cities].sort().map(c=>`<option value="${c}">${c}</option>`).join('')}</select>`;
+  }
+
+  const city=document.getElementById('funnel-city')?.value||'_total';
+  const budget=getBudget(city);
 
   // Budget inputs
   const inp=document.getElementById('budget-inputs');
@@ -899,9 +919,13 @@ function renderFunnelTable(){
   const lmd=DATA.leads.monthly_detail||{};
   const dmd=DATA.deals.monthly_detail||{};
   const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort();
-  const budget=getBudget();
+  const city=document.getElementById('funnel-city')?.value||'_total';
+  const budget=getBudget(city);
 
   const hasBudget=months.some(m=>budget[m]>0);
+
+  const ld=(m,k)=>lmd[m]?.[city]?.[k]||0;
+  const dd=(m,k)=>dmd[m]?.[city]?.[k]||0;
 
   function crCell(val){
     const cls=val>=40?'cr-good':val>=20?'cr-mid':'cr-bad';
@@ -919,41 +943,39 @@ function renderFunnelTable(){
   const rowDef=(label,fn,cls='')=>`<tr class="${cls}">
     <td>${label}</td>${months.map(m=>numCell(fn(m))).join('')}</tr>`;
 
-  rows.push(rowDef('Заявки',m=>lmd[m]?.t||0));
-  rows.push(rowDef('ПЦП',m=>lmd[m]?.pcp||0));
-  rows.push(rowDef('Записи',m=>lmd[m]?.rec||0));
-  rows.push(rowDef('Явка',m=>lmd[m]?.came||0));
-  rows.push(rowDef('Договор (WON)',m=>dmd[m]?.won||0));
-  rows.push(rowDef('Брак',m=>lmd[m]?.junk||0));
-  rows.push(rowDef('Недозвон',m=>lmd[m]?.miss||0));
+  rows.push(rowDef('Заявки',m=>ld(m,'t')));
+  rows.push(rowDef('ПЦП',m=>ld(m,'pcp')));
+  rows.push(rowDef('Записи',m=>ld(m,'rec')));
+  rows.push(rowDef('Явка',m=>ld(m,'came')));
+  rows.push(rowDef('Договор (WON)',m=>dd(m,'won')));
+  rows.push(rowDef('Брак',m=>ld(m,'junk')));
+  rows.push(rowDef('Недозвон',m=>ld(m,'miss')));
 
-  // Section: Выручка
+  // Section: Финансы
   rows.push(`<tr class="row-section-header"><td>Финансы</td>${months.map(()=>'<td></td>').join('')}</tr>`);
-  rows.push(`<tr class="row-money"><td>Сумма Договора</td>${months.map(m=>moneyCell(dmd[m]?.won_r||0)).join('')}</tr>`);
-  rows.push(`<tr class="row-money"><td>Сумма планов лечения</td>${months.map(m=>moneyCell(dmd[m]?.plan_r||0)).join('')}</tr>`);
-  rows.push(`<tr class="row-money"><td>Остаток по рассрочкам</td>${months.map(m=>moneyCell(dmd[m]?.inst_r||0)).join('')}</tr>`);
+  rows.push(`<tr class="row-money"><td>Сумма Договора</td>${months.map(m=>moneyCell(dd(m,'won_r'))).join('')}</tr>`);
+  rows.push(`<tr class="row-money"><td>Сумма планов лечения</td>${months.map(m=>moneyCell(dd(m,'plan_r'))).join('')}</tr>`);
+  rows.push(`<tr class="row-money"><td>Остаток по рассрочкам</td>${months.map(m=>moneyCell(dd(m,'inst_r'))).join('')}</tr>`);
 
   if(hasBudget){
     rows.push(`<tr class="row-money"><td>Траты</td>${months.map(m=>moneyCell(budget[m]||0)).join('')}</tr>`);
-    // Cost per stage
     rows.push(`<tr class="row-section-header"><td>Стоимость этапа</td>${months.map(()=>'<td></td>').join('')}</tr>`);
     const costRow=(label,fn)=>`<tr class="row-money"><td>${label}</td>${months.map(m=>{
       const spend=budget[m]||0;const cnt=fn(m);
       return moneyCell(cnt>0&&spend>0?Math.round(spend/cnt):0);
     }).join('')}</tr>`;
-    rows.push(costRow('Цена ПЦП',m=>lmd[m]?.pcp||0));
-    rows.push(costRow('Цена Записи',m=>lmd[m]?.rec||0));
-    rows.push(costRow('Цена Явки',m=>lmd[m]?.came||0));
-    rows.push(costRow('Цена Договора',m=>dmd[m]?.won||0));
-    // Marketing efficiency
+    rows.push(costRow('Цена ПЦП',m=>ld(m,'pcp')));
+    rows.push(costRow('Цена Записи',m=>ld(m,'rec')));
+    rows.push(costRow('Цена Явки',m=>ld(m,'came')));
+    rows.push(costRow('Цена Договора',m=>dd(m,'won')));
     rows.push(`<tr class="row-section-header"><td>Маркетинговая эффективность</td>${months.map(()=>'<td></td>').join('')}</tr>`);
     rows.push(`<tr><td>ДРР (%)</td>${months.map(m=>{
-      const spend=budget[m]||0;const rev=dmd[m]?.won_r||0;
+      const spend=budget[m]||0;const rev=dd(m,'won_r');
       const v=rev>0&&spend>0?Math.round(spend/rev*100):0;
       return`<td class="${v<30?'cr-good':v<60?'cr-mid':'cr-bad'}">${v>0?v+'%':'—'}</td>`;
     }).join('')}</tr>`);
     rows.push(`<tr><td>ROMI (%)</td>${months.map(m=>{
-      const spend=budget[m]||0;const rev=dmd[m]?.won_r||0;
+      const spend=budget[m]||0;const rev=dd(m,'won_r');
       const v=spend>0?Math.round((rev-spend)/spend*100):0;
       return`<td class="${v>=100?'cr-good':v>=0?'cr-mid':'cr-bad'}">${spend>0?v+'%':'—'}</td>`;
     }).join('')}</tr>`);
@@ -962,13 +984,13 @@ function renderFunnelTable(){
   // Section: Конверсии
   rows.push(`<tr class="row-section-header row-cr"><td>Конверсии</td>${months.map(()=>'<td></td>').join('')}</tr>`);
   const crRow=(label,fn)=>`<tr class="row-cr"><td>${label}</td>${months.map(m=>crCell(fn(m))).join('')}</tr>`;
-  rows.push(crRow('CR Лид→ПЦП',m=>pctN(lmd[m]?.pcp,lmd[m]?.t)));
-  rows.push(crRow('CR ПЦП→Запись',m=>pctN(lmd[m]?.rec,lmd[m]?.pcp)));
-  rows.push(crRow('CR Запись→Явка',m=>pctN(lmd[m]?.came,lmd[m]?.rec)));
-  rows.push(crRow('CR ПЦП→Явка',m=>pctN(lmd[m]?.came,lmd[m]?.pcp)));
-  rows.push(crRow('CR Лид→Запись',m=>pctN(lmd[m]?.rec,lmd[m]?.t)));
-  rows.push(crRow('CR Лид→Явка',m=>pctN(lmd[m]?.came,lmd[m]?.t)));
-  rows.push(crRow('CR Лид→Договор',m=>pctN(dmd[m]?.won,lmd[m]?.t)));
+  rows.push(crRow('CR Лид→ПЦП',m=>pctN(ld(m,'pcp'),ld(m,'t'))));
+  rows.push(crRow('CR ПЦП→Запись',m=>pctN(ld(m,'rec'),ld(m,'pcp'))));
+  rows.push(crRow('CR Запись→Явка',m=>pctN(ld(m,'came'),ld(m,'rec'))));
+  rows.push(crRow('CR ПЦП→Явка',m=>pctN(ld(m,'came'),ld(m,'pcp'))));
+  rows.push(crRow('CR Лид→Запись',m=>pctN(ld(m,'rec'),ld(m,'t'))));
+  rows.push(crRow('CR Лид→Явка',m=>pctN(ld(m,'came'),ld(m,'t'))));
+  rows.push(crRow('CR Лид→Договор',m=>pctN(dd(m,'won'),ld(m,'t'))));
 
   document.getElementById('conv-table').innerHTML=
     `<thead><tr><th>Показатель</th>${cols}</tr></thead><tbody>${rows.join('')}</tbody>`;
@@ -1064,8 +1086,8 @@ function renderBI(){
 
   const s=agg.s;const g=aggD.g;
   const came=s['CONVERTED']||0;
-  const rec=(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
-  const pcp=(s['UC_I0XLWE']||0)+(s['UC_KXIWFH']||0)+rec+came;
+  const rec=(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0)+came;
+  const pcp=(s['UC_I0XLWE']||0)+(s['UC_KXIWFH']||0)+rec;
   const won=g['WON']||0;const wonP=aggDP.g['WON']||0;
 
   // CR current vs prev
