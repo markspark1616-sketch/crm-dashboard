@@ -328,12 +328,8 @@ tr:hover td{background:rgba(255,255,255,.02)}
       </div>
       <div class="section-title">Бюджет по месяцам (Траты на маркетинг)</div>
       <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
-        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Введите расходы на маркетинг по каждому месяцу для расчёта ДРР, ROMI и стоимости этапов</div>
-        <div id="budget-inputs" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"></div>
-        <div style="margin-top:12px">
-          <button class="btn-save" onclick="saveBudget()">Сохранить бюджет</button>
-          <span id="budget-saved" style="margin-left:10px;font-size:12px;color:var(--green);display:none">✓ Сохранено</span>
-        </div>
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Введите расходы на маркетинг по каждому источнику и месяцу для расчёта ДРР, ROMI и стоимости этапов</div>
+        <div id="budget-inputs"></div>
       </div>
       <div class="section-title">Ежемесячная таблица конверсий</div>
       <div class="conv-table-wrap">
@@ -873,13 +869,30 @@ function renderOverview(){
 function getBudget(city){
   try{const all=JSON.parse(localStorage.getItem('dtbudget')||'{}');return all[city||'_total']||{}}catch{return{}}
 }
+function getBudgetMonthTotal(budget,m){
+  const md=budget[m];if(!md)return 0;
+  if(typeof md==='number')return md;
+  return Object.values(md).reduce((s,v)=>s+(v||0),0);
+}
+function updateBudgetTotals(){
+  const seen=new Set(Array.from(document.querySelectorAll('.budget-inp')).map(i=>i.dataset.month));
+  seen.forEach(m=>{
+    const total=Array.from(document.querySelectorAll(`.budget-inp[data-month="${m}"]`)).reduce((s,inp)=>{
+      const v=parseFloat(inp.value.replace(/\s/g,'').replace(',','.'));
+      return s+(isNaN(v)?0:v);
+    },0);
+    const el=document.getElementById(`bgt-${m}`);
+    if(el)el.textContent=total>0?Math.round(total).toLocaleString('ru-RU')+' ₽':'—';
+  });
+}
 function saveBudget(){
   const city=(document.getElementById('funnel-city')?.value)||'_total';
   let all={};try{all=JSON.parse(localStorage.getItem('dtbudget')||'{}')}catch{}
   const budget={};
   document.querySelectorAll('.budget-inp').forEach(inp=>{
+    const m=inp.dataset.month,src=inp.dataset.src;
     const v=parseFloat(inp.value.replace(/\s/g,'').replace(',','.'));
-    if(!isNaN(v)&&v>0)budget[inp.dataset.month]=v;
+    if(!isNaN(v)&&v>0){if(!budget[m])budget[m]={};budget[m][src]=v}
   });
   all[city]=budget;
   localStorage.setItem('dtbudget',JSON.stringify(all));
@@ -892,6 +905,8 @@ function renderFunnelTab(){
   const lmd=DATA.leads.monthly_detail||{};
   const dmd=DATA.deals.monthly_detail||{};
   const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort();
+  const sources=DATA.meta.sources||{};
+  const srcEntries=Object.entries(sources);
 
   // City selector (build once)
   const cw=document.getElementById('funnel-city-wrap');
@@ -904,14 +919,38 @@ function renderFunnelTab(){
   const city=document.getElementById('funnel-city')?.value||'_total';
   const budget=getBudget(city);
 
-  // Budget inputs
-  const inp=document.getElementById('budget-inputs');
-  inp.innerHTML=months.map(m=>`<div class="budget-month">
-    <label>${m}</label>
-    <input class="budget-inp" data-month="${m}" value="${budget[m]?Math.round(budget[m]).toLocaleString('ru-RU'):''}" placeholder="0">
-  </div>`).join('');
-  inp.innerHTML+=`<div style="align-self:flex-end"><button class="btn-save" onclick="saveBudget()">Сохранить</button></div>`;
+  const th=`padding:7px 12px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.4px;border-bottom:1px solid var(--border);text-align:right;white-space:nowrap;background:var(--bg)`;
+  const td=`padding:6px 10px;border-bottom:1px solid var(--border);font-size:12px;text-align:right`;
+  const inpStyle=`width:85px;padding:4px 6px;background:var(--bg);border:1px solid var(--border);border-radius:4px;color:var(--text);font-size:12px;text-align:right;outline:none`;
 
+  document.getElementById('budget-inputs').innerHTML=`
+    <div style="overflow-x:auto">
+    <table style="border-collapse:collapse;width:100%">
+      <thead><tr>
+        <th style="${th};text-align:left;min-width:180px">Источник</th>
+        ${months.map(m=>`<th style="${th}">${m}</th>`).join('')}
+      </tr></thead>
+      <tbody>
+        ${srcEntries.map(([id,name])=>`<tr>
+          <td style="${td};text-align:left;color:var(--text)">${name}</td>
+          ${months.map(m=>{
+            const v=typeof budget[m]==='object'?budget[m]?.[id]:0;
+            return`<td style="${td}"><input class="budget-inp" data-month="${m}" data-src="${id}" value="${v?Math.round(v).toLocaleString('ru-RU'):''}" placeholder="0" oninput="updateBudgetTotals()" style="${inpStyle}"></td>`;
+          }).join('')}
+        </tr>`).join('')}
+        <tr style="background:rgba(255,255,255,.03)">
+          <td style="${td};text-align:left;font-weight:600;color:var(--text)">Итого</td>
+          ${months.map(m=>`<td style="${td};color:var(--accent);font-weight:600" id="bgt-${m}">—</td>`).join('')}
+        </tr>
+      </tbody>
+    </table>
+    </div>
+    <div style="margin-top:12px;display:flex;align-items:center;gap:10px">
+      <button class="btn-save" onclick="saveBudget()">Сохранить бюджет</button>
+      <span id="budget-saved" style="font-size:12px;color:var(--green);display:none">✓ Сохранено</span>
+    </div>`;
+
+  updateBudgetTotals();
   renderFunnelTable();
 }
 
@@ -922,7 +961,7 @@ function renderFunnelTable(){
   const city=document.getElementById('funnel-city')?.value||'_total';
   const budget=getBudget(city);
 
-  const hasBudget=months.some(m=>budget[m]>0);
+  const hasBudget=months.some(m=>getBudgetMonthTotal(budget,m)>0);
 
   const ld=(m,k)=>lmd[m]?.[city]?.[k]||0;
   const dd=(m,k)=>dmd[m]?.[city]?.[k]||0;
@@ -958,10 +997,14 @@ function renderFunnelTable(){
   rows.push(`<tr class="row-money"><td>Остаток по рассрочкам</td>${months.map(m=>moneyCell(dd(m,'inst_r'))).join('')}</tr>`);
 
   if(hasBudget){
-    rows.push(`<tr class="row-money"><td>Траты</td>${months.map(m=>moneyCell(budget[m]||0)).join('')}</tr>`);
+    const srcEntries=Object.entries(DATA.meta.sources||{});
+    srcEntries.forEach(([id,name])=>{
+      rows.push(`<tr class="row-money"><td>Траты: ${name}</td>${months.map(m=>moneyCell(typeof budget[m]==='object'?budget[m]?.[id]||0:0)).join('')}</tr>`);
+    });
+    rows.push(`<tr class="row-money" style="font-weight:700"><td>Траты (итого)</td>${months.map(m=>moneyCell(getBudgetMonthTotal(budget,m))).join('')}</tr>`);
     rows.push(`<tr class="row-section-header"><td>Стоимость этапа</td>${months.map(()=>'<td></td>').join('')}</tr>`);
     const costRow=(label,fn)=>`<tr class="row-money"><td>${label}</td>${months.map(m=>{
-      const spend=budget[m]||0;const cnt=fn(m);
+      const spend=getBudgetMonthTotal(budget,m);const cnt=fn(m);
       return moneyCell(cnt>0&&spend>0?Math.round(spend/cnt):0);
     }).join('')}</tr>`;
     rows.push(costRow('Цена ПЦП',m=>ld(m,'pcp')));
@@ -970,12 +1013,12 @@ function renderFunnelTable(){
     rows.push(costRow('Цена Договора',m=>dd(m,'won')));
     rows.push(`<tr class="row-section-header"><td>Маркетинговая эффективность</td>${months.map(()=>'<td></td>').join('')}</tr>`);
     rows.push(`<tr><td>ДРР (%)</td>${months.map(m=>{
-      const spend=budget[m]||0;const rev=dd(m,'won_r');
+      const spend=getBudgetMonthTotal(budget,m);const rev=dd(m,'won_r');
       const v=rev>0&&spend>0?Math.round(spend/rev*100):0;
       return`<td class="${v<30?'cr-good':v<60?'cr-mid':'cr-bad'}">${v>0?v+'%':'—'}</td>`;
     }).join('')}</tr>`);
     rows.push(`<tr><td>ROMI (%)</td>${months.map(m=>{
-      const spend=budget[m]||0;const rev=dd(m,'won_r');
+      const spend=getBudgetMonthTotal(budget,m);const rev=dd(m,'won_r');
       const v=spend>0?Math.round((rev-spend)/spend*100):0;
       return`<td class="${v>=100?'cr-good':v>=0?'cr-mid':'cr-bad'}">${spend>0?v+'%':'—'}</td>`;
     }).join('')}</tr>`);
