@@ -4,8 +4,8 @@ import os, json, re, time, urllib.request, urllib.parse
 from datetime import datetime, timedelta
 
 WEBHOOK_URL = os.environ.get('BITRIX_WEBHOOK_URL', '').rstrip('/') + '/'
-DATA_FILE = 'data/dashboard.json'
-MONTHS_BACK = 18
+DATA_FILE   = 'data/dashboard.json'
+DATE_FROM   = '2026-01-01'
 
 CITY_MAP = {
     'SPb': 'Санкт-Петербург', 'Spb': 'Санкт-Петербург',
@@ -62,6 +62,12 @@ DEAL_STAGE_ORDER = [
     'FINAL_INVOICE', '1', 'WON', 'LOSE', 'APOLOGY', '2',
 ]
 
+ACTIVE_STAGES = {
+    'NEW', 'PREPARATION', 'PREPAYMENT_INVOICE', 'PREPAYMENT_INVOIC',
+    'EXECUTING', 'FINAL_INVOICE', '1', '6', '7',
+    'UC_MLCFYZ', 'UC_IA4RQ3', 'UC_FCWL21', 'UC_LNVU9C', 'UC_MSD2TV',
+}
+
 
 def api_get(method, params=None):
     url = f"{WEBHOOK_URL}{method}.json"
@@ -78,9 +84,10 @@ def api_get(method, params=None):
     return {}
 
 
-def fetch_all(method, select_fields, date_from):
+def fetch_all(method, select_fields, extra_params=None):
     params = {f'select[{i}]': f for i, f in enumerate(select_fields)}
-    params['filter[>=DATE_CREATE]'] = date_from
+    if extra_params:
+        params.update(extra_params)
     items, start = [], 0
     while True:
         params['start'] = start
@@ -101,8 +108,7 @@ def fetch_all(method, select_fields, date_from):
 def extract_city(title):
     m = re.search(r'Victory[_\- ]?([A-Za-z]+)', title or '')
     if m:
-        code = m.group(1)
-        return CITY_MAP.get(code, code)
+        return CITY_MAP.get(m.group(1), m.group(1))
     return 'Другой'
 
 
@@ -113,7 +119,10 @@ def normalize_stage(stage_id):
 def parse_money(val):
     if not val:
         return 0.0
-    return float(str(val).split('|')[0] or '0')
+    try:
+        return float(str(val).split('|')[0] or '0')
+    except Exception:
+        return 0.0
 
 
 def main():
@@ -122,8 +131,7 @@ def main():
         return
 
     os.makedirs('data', exist_ok=True)
-    date_from = (datetime.now() - timedelta(days=MONTHS_BACK * 30)).strftime('%Y-%m-%d')
-    print(f"Fetching data since {date_from}...")
+    print(f"Fetching data since {DATE_FROM}...")
 
     # Users
     print("Users...")
@@ -142,77 +150,118 @@ def main():
     # Leads
     print("Leads...")
     leads = fetch_all('crm.lead.list',
-        ['ID', 'STATUS_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'TITLE', 'SOURCE_ID'], date_from)
+        ['ID', 'STATUS_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'TITLE', 'SOURCE_ID'],
+        {'filter[>=DATE_CREATE]': DATE_FROM})
 
-    # Deals
-    print("Deals...")
+    # Deals (historical)
+    print("Deals (historical)...")
     deals = fetch_all('crm.deal.list',
-        ['ID', 'STAGE_ID', 'CATEGORY_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE', 'OPPORTUNITY',
-         'UF_CRM_1751552162', 'UF_CRM_1751552078', 'UF_CRM_1751552023'], date_from)
+        ['ID', 'STAGE_ID', 'CATEGORY_ID', 'ASSIGNED_BY_ID', 'DATE_CREATE',
+         'DATE_MODIFY', 'OPPORTUNITY',
+         'UF_CRM_1751552162', 'UF_CRM_1751552078', 'UF_CRM_1751552023'],
+        {'filter[>=DATE_CREATE]': DATE_FROM})
 
     print(f"Aggregating {len(leads)} leads, {len(deals)} deals...")
 
-    # Aggregate leads by day
-    lead_daily = {}
+    # ── Leads aggregation ──
+    lead_daily   = {}
     lead_op_monthly = {}
-    lead_monthly = {}  # for trend chart
+    lead_monthly_detail = {}  # for conversion table
 
     for lead in leads:
-        date = lead['DATE_CREATE'][:10]
-        month = date[:7]
+        date   = lead['DATE_CREATE'][:10]
+        month  = date[:7]
         status = lead.get('STATUS_ID', 'unknown')
-        city = extract_city(lead.get('TITLE', ''))
-        op = str(lead.get('ASSIGNED_BY_ID', ''))
-        src = lead.get('SOURCE_ID', '') or 'unknown'
+        city   = extract_city(lead.get('TITLE', ''))
+        op     = str(lead.get('ASSIGNED_BY_ID', ''))
+        src    = lead.get('SOURCE_ID', '') or 'unknown'
 
+        # daily
         d = lead_daily.setdefault(date, {'t': 0, 's': {}, 'c': {}, 'src': {}})
         d['t'] += 1
         d['s'][status] = d['s'].get(status, 0) + 1
-        d['c'][city] = d['c'].get(city, 0) + 1
-        d['src'][src] = d['src'].get(src, 0) + 1
+        d['c'][city]   = d['c'].get(city, 0) + 1
+        d['src'][src]  = d['src'].get(src, 0) + 1
 
-        lead_monthly[month] = lead_monthly.get(month, 0) + 1
+        # monthly detail for conversion table
+        md = lead_monthly_detail.setdefault(month, {
+            't': 0, 'pcp': 0, 'rec': 0, 'came': 0, 'junk': 0, 'miss': 0,
+            'src': {}
+        })
+        md['t'] += 1
+        if status in ('UC_I0XLWE', 'UC_KXIWFH', 'UC_W36M8K', 'UC_CI0W8O', 'UC_TD7XTT', 'CONVERTED'):
+            md['pcp'] += 1
+        if status in ('UC_W36M8K', 'UC_CI0W8O', 'UC_TD7XTT'):
+            md['rec'] += 1
+        if status == 'CONVERTED':
+            md['came'] += 1
+        if status in ('JUNK', '1'):
+            md['junk'] += 1
+        if status == 'PROCESSED':
+            md['miss'] += 1
+        md['src'][src] = md['src'].get(src, 0) + 1
 
+        # operator monthly
         if op:
             m = lead_op_monthly.setdefault(month, {})
             op_d = m.setdefault(op, {'t': 0, 's': {}})
             op_d['t'] += 1
             op_d['s'][status] = op_d['s'].get(status, 0) + 1
 
-    # Aggregate deals by day
-    deal_daily = {}
+    # ── Deals aggregation ──
+    deal_daily      = {}
     deal_op_monthly = {}
-    deal_monthly = {}  # for trend chart
+    deal_monthly_detail = {}  # for conversion table
+    pipeline        = {}      # current active deals
+    at_risk         = []      # active deals not modified in 30+ days
+    now             = datetime.utcnow()
+    risk_threshold  = now - timedelta(days=30)
 
     for deal in deals:
-        date = deal['DATE_CREATE'][:10]
-        month = date[:7]
-        stage_code = normalize_stage(deal.get('STAGE_ID', ''))
-        cat = str(deal.get('CATEGORY_ID', '0'))
-        city = CATEGORY_CITIES.get(cat, f'Категория {cat}')
-        op = str(deal.get('ASSIGNED_BY_ID', ''))
-        revenue = float(deal.get('OPPORTUNITY') or 0)
+        date       = deal['DATE_CREATE'][:10]
+        month      = date[:7]
+        stage_raw  = deal.get('STAGE_ID', '')
+        stage_code = normalize_stage(stage_raw)
+        cat        = str(deal.get('CATEGORY_ID', '0'))
+        city       = CATEGORY_CITIES.get(cat, f'Категория {cat}')
+        op         = str(deal.get('ASSIGNED_BY_ID', ''))
+        revenue    = float(deal.get('OPPORTUNITY') or 0)
+        date_mod   = deal.get('DATE_MODIFY', '')[:10] if deal.get('DATE_MODIFY') else date
 
-        inst_flag = deal.get('UF_CRM_1751552162', '') or ''
-        inst_balance = parse_money(deal.get('UF_CRM_1751552078'))
-        plan_agreed = parse_money(deal.get('UF_CRM_1751552023'))
+        inst_flag  = deal.get('UF_CRM_1751552162', '') or ''
+        inst_bal   = parse_money(deal.get('UF_CRM_1751552078'))
+        plan_agr   = parse_money(deal.get('UF_CRM_1751552023'))
+        is_won     = (stage_code == 'WON')
 
-        d = deal_daily.setdefault(date, {'t': 0, 'g': {}, 'c': {}, 'r': 0,
-                                         'inst': 0, 'inst_r': 0, 'plan': 0, 'plan_r': 0})
+        # daily
+        d = deal_daily.setdefault(date, {
+            't': 0, 'g': {}, 'c': {}, 'r': 0, 'won_r': 0,
+            'inst': 0, 'inst_r': 0, 'plan': 0, 'plan_r': 0,
+        })
         d['t'] += 1
         d['g'][stage_code] = d['g'].get(stage_code, 0) + 1
-        d['c'][city] = d['c'].get(city, 0) + 1
-        d['r'] += revenue
-
+        d['c'][city]       = d['c'].get(city, 0) + 1
+        d['r']            += revenue
+        if is_won:
+            d['won_r'] += revenue
         if inst_flag:
-            d['inst'] += 1
-            d['inst_r'] += inst_balance
-        if plan_agreed > 0:
-            d['plan'] += 1
-            d['plan_r'] += plan_agreed
+            d['inst']   += 1
+            d['inst_r'] += inst_bal
+        if plan_agr > 0:
+            d['plan']   += 1
+            d['plan_r'] += plan_agr
 
-        deal_monthly[month] = deal_monthly.get(month, 0) + 1
+        # monthly detail
+        md = deal_monthly_detail.setdefault(month, {
+            'won': 0, 'won_r': 0, 'inst_r': 0, 'plan_r': 0,
+        })
+        if is_won:
+            md['won']   += 1
+            md['won_r'] += revenue
+        md['inst_r'] += inst_bal
+        md['plan_r'] += plan_agr
 
+        # operator monthly
         if op:
             m = deal_op_monthly.setdefault(month, {})
             op_d = m.setdefault(op, {'t': 0, 'r': 0, 'g': {}})
@@ -220,29 +269,57 @@ def main():
             op_d['r'] += revenue
             op_d['g'][stage_code] = op_d['g'].get(stage_code, 0) + 1
 
+        # pipeline (active stages, created after DATE_FROM)
+        if stage_code in ACTIVE_STAGES:
+            pg = pipeline.setdefault(stage_code, {'count': 0, 'sum': 0.0, 'plan_r': 0.0})
+            pg['count'] += 1
+            pg['sum']   += revenue
+            pg['plan_r'] += plan_agr
+
+            # at risk: not modified in 30 days
+            try:
+                mod_dt = datetime.strptime(date_mod, '%Y-%m-%d')
+                if mod_dt < risk_threshold:
+                    at_risk.append({
+                        'id':       deal['ID'],
+                        'city':     city,
+                        'stage':    stage_code,
+                        'opp':      revenue,
+                        'mod':      date_mod,
+                        'days_idle': (now.date() - mod_dt.date()).days,
+                    })
+            except Exception:
+                pass
+
+    # sort at_risk by days_idle desc, keep top 50
+    at_risk.sort(key=lambda x: x['days_idle'], reverse=True)
+    at_risk = at_risk[:50]
+
     dashboard = {
         'generated_at': datetime.utcnow().isoformat() + 'Z',
-        'date_from': date_from,
+        'date_from':    DATE_FROM,
         'meta': {
-            'users': users,
-            'lead_statuses': LEAD_STATUS_NAMES,
+            'users':             users,
+            'lead_statuses':     LEAD_STATUS_NAMES,
             'lead_status_order': LEAD_STATUS_ORDER,
-            'deal_stages': DEAL_STAGE_NAMES,
-            'deal_stage_order': DEAL_STAGE_ORDER,
-            'categories': CATEGORY_CITIES,
-            'sources': source_names,
+            'deal_stages':       DEAL_STAGE_NAMES,
+            'deal_stage_order':  DEAL_STAGE_ORDER,
+            'categories':        CATEGORY_CITIES,
+            'sources':           source_names,
         },
         'leads': {
-            'total': len(leads),
-            'daily': lead_daily,
-            'monthly': lead_monthly,
-            'operators': lead_op_monthly,
+            'total':          len(leads),
+            'daily':          lead_daily,
+            'monthly_detail': lead_monthly_detail,
+            'operators':      lead_op_monthly,
         },
         'deals': {
-            'total': len(deals),
-            'daily': deal_daily,
-            'monthly': deal_monthly,
-            'operators': deal_op_monthly,
+            'total':          len(deals),
+            'daily':          deal_daily,
+            'monthly_detail': deal_monthly_detail,
+            'operators':      deal_op_monthly,
+            'pipeline':       pipeline,
+            'at_risk':        at_risk,
         },
     }
 
@@ -251,6 +328,7 @@ def main():
 
     size_kb = os.path.getsize(DATA_FILE) / 1024
     print(f"Saved {DATA_FILE} ({size_kb:.0f} KB)")
+    print(f"Pipeline active stages: {len(pipeline)}, At risk deals: {len(at_risk)}")
 
 
 if __name__ == '__main__':

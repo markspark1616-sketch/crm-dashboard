@@ -6,123 +6,165 @@
 <title>Dream Team — Дашборд</title>
 <script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
 <style>
-  :root {
-    --bg: #0d1117; --card: #161b22; --border: #21262d;
-    --text: #e6edf3; --muted: #8b949e; --accent: #58a6ff;
-    --green: #3fb950; --red: #f85149; --orange: #d29922;
-    --purple: #a371f7; --cyan: #39d353; --teal: #2ea2a0;
-  }
-  * { box-sizing: border-box; margin: 0; padding: 0; }
-  body { background: var(--bg); color: var(--text); font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; font-size: 14px; }
+:root {
+  --bg:#0d1117;--card:#161b22;--border:#21262d;
+  --text:#e6edf3;--muted:#8b949e;--accent:#58a6ff;
+  --green:#3fb950;--red:#f85149;--orange:#d29922;
+  --purple:#a371f7;--cyan:#39d353;--teal:#2ea2a0;
+}
+*{box-sizing:border-box;margin:0;padding:0}
+body{background:var(--bg);color:var(--text);font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',sans-serif;font-size:14px}
 
-  #gate { position: fixed; inset: 0; background: var(--bg); display: flex; align-items: center; justify-content: center; z-index: 9999; }
-  .gate-box { background: var(--card); border: 1px solid var(--border); border-radius: 12px; padding: 40px; width: 340px; text-align: center; }
-  .gate-box h2 { margin-bottom: 8px; font-size: 20px; }
-  .gate-box p { color: var(--muted); margin-bottom: 24px; font-size: 13px; }
-  .gate-box input { width: 100%; padding: 10px 14px; background: var(--bg); border: 1px solid var(--border); border-radius: 8px; color: var(--text); font-size: 15px; margin-bottom: 12px; outline: none; }
-  .gate-box input:focus { border-color: var(--accent); }
-  .gate-box button { width: 100%; padding: 10px; background: var(--accent); color: #000; border: none; border-radius: 8px; font-size: 15px; font-weight: 600; cursor: pointer; }
-  .gate-box button:hover { opacity: 0.85; }
-  #gate-error { color: var(--red); font-size: 13px; margin-top: 8px; min-height: 18px; }
+/* Gate */
+#gate{position:fixed;inset:0;background:var(--bg);display:flex;align-items:center;justify-content:center;z-index:9999}
+.gate-box{background:var(--card);border:1px solid var(--border);border-radius:12px;padding:40px;width:340px;text-align:center}
+.gate-box h2{margin-bottom:8px;font-size:20px}
+.gate-box p{color:var(--muted);margin-bottom:24px;font-size:13px}
+.gate-box input{width:100%;padding:10px 14px;background:var(--bg);border:1px solid var(--border);border-radius:8px;color:var(--text);font-size:15px;margin-bottom:12px;outline:none}
+.gate-box input:focus{border-color:var(--accent)}
+.gate-box button{width:100%;padding:10px;background:var(--accent);color:#000;border:none;border-radius:8px;font-size:15px;font-weight:600;cursor:pointer}
+#gate-error{color:var(--red);font-size:13px;margin-top:8px;min-height:18px}
 
-  #app { display: none; min-height: 100vh; }
-  header { background: var(--card); border-bottom: 1px solid var(--border); padding: 14px 24px; display: flex; align-items: center; gap: 16px; flex-wrap: wrap; }
-  header h1 { font-size: 16px; font-weight: 600; flex: 1; }
-  .updated { font-size: 12px; color: var(--muted); }
+/* Layout */
+#app{display:none;min-height:100vh}
+header{background:var(--card);border-bottom:1px solid var(--border);padding:14px 24px;display:flex;align-items:center;gap:16px;flex-wrap:wrap}
+header h1{font-size:16px;font-weight:600;flex:1}
+.updated{font-size:12px;color:var(--muted)}
 
-  .tabs { display: flex; gap: 4px; background: var(--bg); padding: 0 24px; border-bottom: 1px solid var(--border); }
-  .tab { padding: 12px 20px; cursor: pointer; color: var(--muted); border-bottom: 2px solid transparent; font-weight: 500; transition: all .2s; }
-  .tab.active { color: var(--accent); border-bottom-color: var(--accent); }
-  .tab:hover:not(.active) { color: var(--text); }
+/* Tabs */
+.tabs{display:flex;gap:2px;background:var(--bg);padding:0 24px;border-bottom:1px solid var(--border);overflow-x:auto}
+.tab{padding:12px 16px;cursor:pointer;color:var(--muted);border-bottom:2px solid transparent;font-weight:500;transition:all .2s;white-space:nowrap;font-size:13px}
+.tab.active{color:var(--accent);border-bottom-color:var(--accent)}
+.tab:hover:not(.active){color:var(--text)}
 
-  .filters { display: flex; gap: 12px; align-items: center; padding: 16px 24px; flex-wrap: wrap; background: var(--card); border-bottom: 1px solid var(--border); }
-  .filter-group { display: flex; gap: 4px; }
-  .filter-btn { padding: 6px 14px; border-radius: 6px; border: 1px solid var(--border); background: transparent; color: var(--muted); cursor: pointer; font-size: 13px; transition: all .2s; }
-  .filter-btn.active { background: var(--accent); color: #000; border-color: var(--accent); font-weight: 600; }
-  .filter-btn:hover:not(.active) { border-color: var(--accent); color: var(--text); }
-  select { padding: 6px 10px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; outline: none; cursor: pointer; }
-  select:focus { border-color: var(--accent); }
-  .date-inputs { display: flex; gap: 6px; align-items: center; }
-  .date-inputs input[type=date] { padding: 5px 8px; border-radius: 6px; border: 1px solid var(--border); background: var(--card); color: var(--text); font-size: 13px; outline: none; }
-  .date-inputs input[type=date]:focus { border-color: var(--accent); }
+/* Filters */
+.filters{display:flex;gap:10px;align-items:center;padding:14px 24px;flex-wrap:wrap;background:var(--card);border-bottom:1px solid var(--border)}
+.filter-group{display:flex;gap:4px}
+.filter-btn{padding:5px 12px;border-radius:6px;border:1px solid var(--border);background:transparent;color:var(--muted);cursor:pointer;font-size:12px;transition:all .2s}
+.filter-btn.active{background:var(--accent);color:#000;border-color:var(--accent);font-weight:600}
+.filter-btn:hover:not(.active){border-color:var(--accent);color:var(--text)}
+select{padding:5px 10px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;outline:none;cursor:pointer}
+select:focus{border-color:var(--accent)}
+.date-inputs{display:flex;gap:6px;align-items:center}
+.date-inputs input[type=date]{padding:5px 8px;border-radius:6px;border:1px solid var(--border);background:var(--card);color:var(--text);font-size:12px;outline:none}
+.date-inputs input[type=date]:focus{border-color:var(--accent)}
 
-  main { padding: 24px; }
-  .tab-content { display: none; }
-  .tab-content.active { display: block; }
+main{padding:20px 24px}
+.tab-content{display:none}
+.tab-content.active{display:block}
+.section-title{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.8px;margin:20px 0 10px;font-weight:600}
 
-  .section-title { font-size: 12px; color: var(--muted); text-transform: uppercase; letter-spacing: .8px; margin: 24px 0 12px; font-weight: 600; }
+/* Cards */
+.cards{display:grid;grid-template-columns:repeat(auto-fill,minmax(170px,1fr));gap:10px;margin-bottom:14px}
+.card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.card-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.card-value{font-size:26px;font-weight:700;line-height:1}
+.card-value.accent{color:var(--accent)}.card-value.green{color:var(--green)}.card-value.orange{color:var(--orange)}
+.card-value.red{color:var(--red)}.card-value.purple{color:var(--purple)}.card-value.teal{color:var(--teal)}
+.card-sub{font-size:11px;color:var(--muted);margin-top:4px}
 
-  .cards { display: grid; grid-template-columns: repeat(auto-fill, minmax(180px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 16px; }
-  .card-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 6px; }
-  .card-value { font-size: 28px; font-weight: 700; line-height: 1; }
-  .card-value.accent { color: var(--accent); }
-  .card-value.green { color: var(--green); }
-  .card-value.orange { color: var(--orange); }
-  .card-value.red { color: var(--red); }
-  .card-value.purple { color: var(--purple); }
-  .card-value.teal { color: var(--teal); }
-  .card-sub { font-size: 12px; color: var(--muted); margin-top: 4px; }
-  .card-delta { font-size: 12px; margin-top: 4px; }
-  .card-delta.up { color: var(--green); }
-  .card-delta.down { color: var(--red); }
+/* Compare */
+.compare-row{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.compare-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.compare-label{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:8px}
+.compare-vals{display:flex;align-items:baseline;gap:8px;flex-wrap:wrap}
+.compare-cur{font-size:20px;font-weight:700}
+.compare-prev{font-size:12px;color:var(--muted)}
+.compare-delta{font-size:11px;font-weight:600;padding:2px 6px;border-radius:4px}
+.delta-up{background:rgba(63,185,80,.15);color:var(--green)}.delta-down{background:rgba(248,81,73,.15);color:var(--red)}.delta-flat{background:rgba(139,148,158,.15);color:var(--muted)}
 
-  .charts-row { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  .charts-row-3 { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 16px; margin-bottom: 16px; }
-  @media (max-width: 1100px) { .charts-row-3 { grid-template-columns: 1fr 1fr; } }
-  @media (max-width: 900px) { .charts-row, .charts-row-3 { grid-template-columns: 1fr; } }
-  .chart-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 20px; }
-  .chart-card h3 { font-size: 13px; color: var(--muted); margin-bottom: 16px; font-weight: 500; }
-  .chart-card.full { margin-bottom: 16px; }
+/* Charts */
+.charts-row{display:grid;grid-template-columns:1fr 1fr;gap:14px;margin-bottom:14px}
+@media(max-width:900px){.charts-row{grid-template-columns:1fr}}
+.chart-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:18px;margin-bottom:14px}
+.chart-card h3{font-size:12px;color:var(--muted);margin-bottom:14px;font-weight:500}
 
-  .funnel { display: flex; flex-direction: column; gap: 8px; }
-  .funnel-row { display: grid; grid-template-columns: 160px 1fr 60px; gap: 8px; align-items: center; }
-  .funnel-label { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .funnel-bar-wrap { background: var(--bg); border-radius: 4px; height: 24px; overflow: hidden; }
-  .funnel-bar { height: 100%; border-radius: 4px; transition: width .6s ease; display: flex; align-items: center; padding-left: 8px; font-size: 12px; font-weight: 600; color: #000; min-width: 30px; }
-  .funnel-pct { font-size: 12px; color: var(--muted); text-align: right; }
+/* Funnel */
+.funnel{display:flex;flex-direction:column;gap:7px}
+.funnel-row{display:grid;grid-template-columns:155px 1fr 90px;gap:8px;align-items:center}
+.funnel-label{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.funnel-bar-wrap{background:var(--bg);border-radius:4px;height:22px;overflow:hidden}
+.funnel-bar{height:100%;border-radius:4px;transition:width .6s ease;display:flex;align-items:center;padding-left:8px;font-size:11px;font-weight:600;color:#000;min-width:28px}
+.funnel-pct{font-size:11px;color:var(--muted);text-align:right;line-height:1.3}
 
-  .city-bars { display: flex; flex-direction: column; gap: 8px; }
-  .city-row { display: grid; grid-template-columns: 150px 1fr 50px; gap: 8px; align-items: center; }
-  .city-label { font-size: 12px; color: var(--muted); text-align: right; white-space: nowrap; overflow: hidden; text-overflow: ellipsis; }
-  .city-bar-wrap { background: var(--bg); border-radius: 4px; height: 20px; overflow: hidden; }
-  .city-bar { height: 100%; border-radius: 4px; background: var(--purple); transition: width .6s ease; }
-  .city-count { font-size: 12px; color: var(--muted); text-align: right; }
+/* City bars */
+.city-bars{display:flex;flex-direction:column;gap:7px}
+.city-row{display:grid;grid-template-columns:140px 1fr 70px;gap:8px;align-items:center}
+.city-label{font-size:12px;color:var(--muted);text-align:right;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.city-bar-wrap{background:var(--bg);border-radius:4px;height:18px;overflow:hidden}
+.city-bar{height:100%;border-radius:4px;background:var(--purple);transition:width .6s ease}
+.city-count{font-size:12px;color:var(--muted);text-align:right}
 
-  .table-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; overflow: hidden; margin-bottom: 16px; }
-  .table-card h3 { font-size: 13px; color: var(--muted); padding: 16px 20px 12px; font-weight: 500; border-bottom: 1px solid var(--border); }
-  table { width: 100%; border-collapse: collapse; }
-  th { text-align: left; padding: 10px 20px; font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; border-bottom: 1px solid var(--border); font-weight: 500; }
-  td { padding: 10px 20px; border-bottom: 1px solid var(--border); font-size: 13px; }
-  tr:last-child td { border-bottom: none; }
-  tr:hover td { background: rgba(255,255,255,.02); }
-  .badge { display: inline-block; padding: 2px 8px; border-radius: 4px; font-size: 11px; font-weight: 600; }
-  .badge-green { background: rgba(63,185,80,.15); color: var(--green); }
-  .badge-red { background: rgba(248,81,73,.15); color: var(--red); }
-  .badge-blue { background: rgba(88,166,255,.15); color: var(--accent); }
-  .badge-orange { background: rgba(210,153,34,.15); color: var(--orange); }
-  .badge-purple { background: rgba(163,113,247,.15); color: var(--purple); }
+/* Table */
+.table-card{background:var(--card);border:1px solid var(--border);border-radius:10px;overflow:hidden;margin-bottom:14px}
+.table-card h3{font-size:12px;color:var(--muted);padding:14px 18px 10px;font-weight:500;border-bottom:1px solid var(--border)}
+table{width:100%;border-collapse:collapse}
+th{text-align:left;padding:8px 16px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);font-weight:500;white-space:nowrap}
+td{padding:9px 16px;border-bottom:1px solid var(--border);font-size:13px}
+tr:last-child td{border-bottom:none}
+tr:hover td{background:rgba(255,255,255,.02)}
+.badge{display:inline-block;padding:2px 7px;border-radius:4px;font-size:11px;font-weight:600}
+.badge-green{background:rgba(63,185,80,.15);color:var(--green)}.badge-red{background:rgba(248,81,73,.15);color:var(--red)}
+.badge-blue{background:rgba(88,166,255,.15);color:var(--accent)}.badge-orange{background:rgba(210,153,34,.15);color:var(--orange)}
+.badge-purple{background:rgba(163,113,247,.15);color:var(--purple)}
 
-  /* Heatmap */
-  .heatmap { display: grid; grid-template-columns: 80px repeat(7, 1fr); gap: 4px; }
-  .hm-header { font-size: 11px; color: var(--muted); text-align: center; padding: 4px 0; }
-  .hm-label { font-size: 11px; color: var(--muted); display: flex; align-items: center; justify-content: flex-end; padding-right: 8px; }
-  .hm-cell { border-radius: 4px; height: 32px; display: flex; align-items: center; justify-content: center; font-size: 11px; font-weight: 600; color: rgba(255,255,255,.7); transition: opacity .3s; }
+/* Heatmap */
+.heatmap{display:grid;grid-template-columns:60px repeat(7,1fr);gap:4px}
+.hm-header{font-size:11px;color:var(--muted);text-align:center;padding:3px 0}
+.hm-label{font-size:11px;color:var(--muted);display:flex;align-items:center;justify-content:flex-end;padding-right:6px}
+.hm-cell{border-radius:4px;height:30px;display:flex;align-items:center;justify-content:center;font-size:11px;font-weight:600;color:rgba(255,255,255,.8)}
 
-  /* Comparison banner */
-  .compare-row { display: grid; grid-template-columns: repeat(auto-fill, minmax(200px, 1fr)); gap: 12px; margin-bottom: 16px; }
-  .compare-card { background: var(--card); border: 1px solid var(--border); border-radius: 10px; padding: 14px 16px; }
-  .compare-label { font-size: 11px; color: var(--muted); text-transform: uppercase; letter-spacing: .5px; margin-bottom: 8px; }
-  .compare-vals { display: flex; align-items: baseline; gap: 8px; }
-  .compare-cur { font-size: 22px; font-weight: 700; }
-  .compare-prev { font-size: 13px; color: var(--muted); }
-  .compare-delta { font-size: 12px; font-weight: 600; padding: 2px 6px; border-radius: 4px; }
-  .delta-up { background: rgba(63,185,80,.15); color: var(--green); }
-  .delta-down { background: rgba(248,81,73,.15); color: var(--red); }
-  .delta-flat { background: rgba(139,148,158,.15); color: var(--muted); }
+/* Pipeline cards */
+.pipeline-grid{display:grid;grid-template-columns:repeat(auto-fill,minmax(200px,1fr));gap:10px;margin-bottom:14px}
+.pipeline-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px;border-left:3px solid var(--accent)}
+.pipeline-stage{font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;margin-bottom:6px}
+.pipeline-sum{font-size:22px;font-weight:700;color:var(--accent)}
+.pipeline-meta{font-size:11px;color:var(--muted);margin-top:4px}
 
-  .spinner { text-align: center; padding: 60px; color: var(--muted); }
-  .error-msg { background: rgba(248,81,73,.1); border: 1px solid var(--red); border-radius: 8px; padding: 16px; margin: 24px; color: var(--red); }
+/* At risk table */
+.risk-row-critical td{background:rgba(248,81,73,.08)}
+.risk-row-warn td{background:rgba(210,153,34,.06)}
+
+/* BI insight cards */
+.insights-grid{display:flex;flex-direction:column;gap:10px;margin-bottom:20px}
+.insight-card{background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;border-left:4px solid var(--muted)}
+.insight-card.critical{border-left-color:var(--red)}
+.insight-card.warn{border-left-color:var(--orange)}
+.insight-card.good{border-left-color:var(--green)}
+.insight-header{display:flex;align-items:center;gap:10px;margin-bottom:8px}
+.insight-icon{font-size:18px}
+.insight-title{font-weight:600;font-size:14px}
+.insight-priority{font-size:11px;padding:2px 8px;border-radius:4px;font-weight:600}
+.priority-critical{background:rgba(248,81,73,.15);color:var(--red)}
+.priority-warn{background:rgba(210,153,34,.15);color:var(--orange)}
+.priority-good{background:rgba(63,185,80,.15);color:var(--green)}
+.insight-body{font-size:13px;color:var(--muted);line-height:1.5}
+.insight-rec{margin-top:8px;font-size:12px;color:var(--accent);font-style:italic}
+
+/* Conversion table (Tab 4) */
+.conv-table-wrap{overflow-x:auto;border-radius:10px;border:1px solid var(--border);margin-bottom:14px}
+.conv-table{border-collapse:collapse;min-width:900px;width:100%}
+.conv-table th{background:var(--card);padding:9px 14px;font-size:11px;color:var(--muted);text-transform:uppercase;letter-spacing:.5px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);white-space:nowrap;text-align:right}
+.conv-table th:first-child{text-align:left;position:sticky;left:0;z-index:2;min-width:160px}
+.conv-table td{padding:8px 14px;border-bottom:1px solid var(--border);border-right:1px solid var(--border);text-align:right;font-size:13px;white-space:nowrap}
+.conv-table td:first-child{text-align:left;background:var(--card);position:sticky;left:0;z-index:1;font-weight:500;color:var(--text)}
+.conv-table tr:last-child td{border-bottom:none}
+.conv-table .row-header{background:rgba(88,166,255,.05)}
+.conv-table .row-money td{color:var(--green)}
+.conv-table .row-cr td:not(:first-child){font-weight:600}
+.cr-good{color:var(--green)}.cr-mid{color:var(--orange)}.cr-bad{color:var(--red)}
+.row-section-header td{background:rgba(255,255,255,.03);color:var(--muted);font-size:11px;text-transform:uppercase;letter-spacing:.5px;padding:6px 14px}
+
+/* Budget input */
+.budget-row{display:flex;gap:8px;align-items:center;flex-wrap:wrap;margin-bottom:14px;background:var(--card);border:1px solid var(--border);border-radius:10px;padding:14px}
+.budget-month{display:flex;flex-direction:column;gap:4px;align-items:center}
+.budget-month label{font-size:10px;color:var(--muted);text-transform:uppercase}
+.budget-month input{width:90px;padding:5px 8px;background:var(--bg);border:1px solid var(--border);border-radius:6px;color:var(--text);font-size:12px;text-align:right;outline:none}
+.budget-month input:focus{border-color:var(--accent)}
+.btn-save{padding:7px 16px;background:var(--accent);color:#000;border:none;border-radius:6px;cursor:pointer;font-size:13px;font-weight:600}
+.btn-save:hover{opacity:.85}
+
+.error-msg{background:rgba(248,81,73,.1);border:1px solid var(--red);border-radius:8px;padding:16px;margin:24px;color:var(--red)}
 </style>
 </head>
 <body>
@@ -144,9 +186,12 @@
   </header>
 
   <div class="tabs">
-    <div class="tab active" onclick="switchTab('leads')">📥 Лиды</div>
-    <div class="tab" onclick="switchTab('deals')">💼 Сделки</div>
-    <div class="tab" onclick="switchTab('overview')">📊 Обзор</div>
+    <div class="tab active"  onclick="switchTab('leads')">📥 Лиды</div>
+    <div class="tab"         onclick="switchTab('deals')">💼 Сделки</div>
+    <div class="tab"         onclick="switchTab('overview')">📊 Обзор</div>
+    <div class="tab"         onclick="switchTab('funnel')">📈 Воронка</div>
+    <div class="tab"         onclick="switchTab('finance')">💰 Финансы</div>
+    <div class="tab"         onclick="switchTab('bi')">🤖 BI-советник</div>
   </div>
 
   <div class="filters">
@@ -167,17 +212,15 @@
   </div>
 
   <main>
-    <!-- LEADS TAB -->
+    <!-- TAB 1: LEADS -->
     <div class="tab-content active" id="tab-leads">
       <div class="section-title">Сравнение с прошлым периодом</div>
       <div class="compare-row" id="leads-compare"></div>
-
       <div class="section-title">Ключевые метрики</div>
       <div class="cards" id="leads-cards"></div>
-
       <div class="charts-row">
         <div class="chart-card">
-          <h3>Воронка лидов (% от всех)</h3>
+          <h3>Воронка лидов (% от каждой предыдущей стадии)</h3>
           <div class="funnel" id="leads-funnel"></div>
         </div>
         <div class="chart-card">
@@ -185,7 +228,6 @@
           <div class="city-bars" id="leads-cities"></div>
         </div>
       </div>
-
       <div class="charts-row">
         <div class="chart-card">
           <h3>По источникам</h3>
@@ -193,38 +235,33 @@
         </div>
         <div class="chart-card">
           <h3>Статусы лидов</h3>
-          <canvas id="leads-donut" style="max-height:260px"></canvas>
+          <canvas id="leads-donut" style="max-height:250px"></canvas>
         </div>
       </div>
-
-      <div class="chart-card full">
+      <div class="chart-card">
         <h3>Активность по дням недели</h3>
         <div class="heatmap" id="leads-heatmap"></div>
       </div>
-
       <div class="table-card">
-        <h3>Эффективность операторов (лиды) — рейтинг по конверсии</h3>
+        <h3>Эффективность операторов — рейтинг по конверсии лид→приход</h3>
         <table><thead><tr>
-          <th>#</th><th>Оператор</th><th>Всего</th><th>Взяты в работу</th>
-          <th>Записаны</th><th>Пришли</th><th>Некачественные</th><th>Конверсия лид→приход</th>
+          <th>#</th><th>Оператор</th><th>Всего</th><th>ПЦП</th><th>Взяты в работу</th>
+          <th>Записаны</th><th>Пришли</th><th>Некачественные</th><th>Конверсия</th>
         </tr></thead><tbody id="leads-op-table"></tbody></table>
       </div>
     </div>
 
-    <!-- DEALS TAB -->
+    <!-- TAB 2: DEALS -->
     <div class="tab-content" id="tab-deals">
       <div class="section-title">Сравнение с прошлым периодом</div>
       <div class="compare-row" id="deals-compare"></div>
-
       <div class="section-title">Ключевые метрики</div>
       <div class="cards" id="deals-cards"></div>
-
       <div class="section-title">Рассрочки и планы лечения</div>
       <div class="cards" id="deals-finance-cards"></div>
-
       <div class="charts-row">
         <div class="chart-card">
-          <h3>Воронка сделок (% от всех)</h3>
+          <h3>Воронка сделок (% от каждой предыдущей стадии)</h3>
           <div class="funnel" id="deals-funnel"></div>
         </div>
         <div class="chart-card">
@@ -232,7 +269,6 @@
           <div class="city-bars" id="deals-cities-avg"></div>
         </div>
       </div>
-
       <div class="charts-row">
         <div class="chart-card">
           <h3>По городам (количество)</h3>
@@ -240,17 +276,15 @@
         </div>
         <div class="chart-card">
           <h3>Стадии сделок</h3>
-          <canvas id="deals-donut" style="max-height:260px"></canvas>
+          <canvas id="deals-donut" style="max-height:250px"></canvas>
         </div>
       </div>
-
-      <div class="chart-card full">
+      <div class="chart-card">
         <h3>Активность по дням недели</h3>
         <div class="heatmap" id="deals-heatmap"></div>
       </div>
-
       <div class="table-card">
-        <h3>Эффективность операторов (сделки) — рейтинг по конверсии</h3>
+        <h3>Эффективность операторов — рейтинг по конверсии</h3>
         <table><thead><tr>
           <th>#</th><th>Оператор</th><th>Всего</th><th>Пришел</th>
           <th>ТМ назначен</th><th>Успешно</th><th>Выручка</th><th>Конверсия</th>
@@ -258,581 +292,960 @@
       </div>
     </div>
 
-    <!-- OVERVIEW TAB -->
+    <!-- TAB 3: OVERVIEW -->
     <div class="tab-content" id="tab-overview">
       <div class="section-title">Динамика по месяцам</div>
-      <div class="chart-card full">
+      <div class="chart-card">
         <h3>Лиды и сделки помесячно</h3>
-        <canvas id="trend-chart" style="max-height:320px"></canvas>
+        <canvas id="trend-chart" style="max-height:300px"></canvas>
       </div>
-
+      <div class="chart-card">
+        <h3>Динамика среднего чека по месяцам (₽)</h3>
+        <canvas id="avg-check-chart" style="max-height:250px"></canvas>
+      </div>
       <div class="section-title">Конверсия лид → сделка</div>
       <div class="cards" id="conv-cards"></div>
-      <div class="chart-card full">
-        <h3>Конверсия лид → сделка по месяцам (%)</h3>
-        <canvas id="conv-chart" style="max-height:260px"></canvas>
+      <div class="chart-card">
+        <h3>Конверсия лид → договор по месяцам (%)</h3>
+        <canvas id="conv-chart" style="max-height:220px"></canvas>
+      </div>
+      <div class="section-title">Качество источников</div>
+      <div class="table-card">
+        <h3>Конверсия по источникам</h3>
+        <table><thead><tr>
+          <th>Источник</th><th>Заявки</th><th>ПЦП</th><th>Явка</th>
+          <th>CR Лид→ПЦП</th><th>CR Лид→Явка</th><th>Оценка</th>
+        </tr></thead><tbody id="source-table"></tbody></table>
+      </div>
+    </div>
+
+    <!-- TAB 4: FUNNEL (monthly conversion table) -->
+    <div class="tab-content" id="tab-funnel">
+      <div class="section-title">Бюджет по месяцам (Траты на маркетинг)</div>
+      <div style="background:var(--card);border:1px solid var(--border);border-radius:10px;padding:16px;margin-bottom:14px">
+        <div style="font-size:12px;color:var(--muted);margin-bottom:12px">Введите расходы на маркетинг по каждому месяцу для расчёта ДРР, ROMI и стоимости этапов</div>
+        <div id="budget-inputs" style="display:flex;gap:10px;flex-wrap:wrap;align-items:flex-end"></div>
+        <div style="margin-top:12px">
+          <button class="btn-save" onclick="saveBudget()">Сохранить бюджет</button>
+          <span id="budget-saved" style="margin-left:10px;font-size:12px;color:var(--green);display:none">✓ Сохранено</span>
+        </div>
+      </div>
+      <div class="section-title">Ежемесячная таблица конверсий</div>
+      <div class="conv-table-wrap">
+        <table class="conv-table" id="conv-table"></table>
+      </div>
+    </div>
+
+    <!-- TAB 5: FINANCE -->
+    <div class="tab-content" id="tab-finance">
+      <div class="section-title">Денежный поток (за выбранный период)</div>
+      <div class="cards" id="finance-flow-cards"></div>
+      <div class="section-title">Pipeline — деньги в воронке (текущий момент)</div>
+      <div id="pipeline-grid" class="pipeline-grid"></div>
+      <div class="chart-card" style="margin-bottom:14px">
+        <h3>Pipeline по стадиям (₽)</h3>
+        <canvas id="pipeline-chart" style="max-height:250px"></canvas>
+      </div>
+      <div class="section-title">Сделки под риском — более 30 дней без движения</div>
+      <div class="table-card">
+        <h3 id="risk-title">Загрузка...</h3>
+        <table><thead><tr>
+          <th>Город</th><th>Стадия</th><th>Сумма сделки</th><th>Сумма плана</th>
+          <th>Последнее движение</th><th>Дней без активности</th>
+        </tr></thead><tbody id="risk-table"></tbody></table>
+      </div>
+      <div style="font-size:11px;color:var(--muted);margin-top:-10px;margin-bottom:14px">
+        * Pipeline и сделки под риском обновляются ежедневно в 09:00 МСК
+      </div>
+    </div>
+
+    <!-- TAB 6: BI -->
+    <div class="tab-content" id="tab-bi">
+      <div class="section-title">Автоматические выводы и рекомендации</div>
+      <div id="insights-grid" class="insights-grid"></div>
+      <div class="section-title">Узкие места воронки (потери на каждом этапе)</div>
+      <div class="chart-card">
+        <h3>Отвал лидов по стадиям (абсолютные потери)</h3>
+        <canvas id="bottleneck-chart" style="max-height:280px"></canvas>
+      </div>
+      <div class="section-title">Сравнение источников по качеству</div>
+      <div class="chart-card">
+        <h3>CR Лид→Явка по источникам (%)</h3>
+        <canvas id="source-cr-chart" style="max-height:250px"></canvas>
       </div>
     </div>
   </main>
 </div>
 
 <script>
-const PWD_HASH = 'b56b65e2b4c39c6ae74b4c67b3d670533e73e43e7e4107d2d10494e9679daa33';
-
-async function sha256(str) {
-  const buf = await crypto.subtle.digest('SHA-256', new TextEncoder().encode(str));
-  return Array.from(new Uint8Array(buf)).map(b => b.toString(16).padStart(2,'0')).join('');
-}
-async function checkPwd() {
-  const val = document.getElementById('pwd-input').value;
-  const hash = await sha256(val);
-  if (hash === PWD_HASH) {
-    sessionStorage.setItem('auth', '1');
-    document.getElementById('gate').style.display = 'none';
-    document.getElementById('app').style.display = 'block';
+// ── PASSWORD ──
+const PWD_HASH='b56b65e2b4c39c6ae74b4c67b3d670533e73e43e7e4107d2d10494e9679daa33';
+async function sha256(s){const b=await crypto.subtle.digest('SHA-256',new TextEncoder().encode(s));return Array.from(new Uint8Array(b)).map(x=>x.toString(16).padStart(2,'0')).join('')}
+async function checkPwd(){
+  const v=document.getElementById('pwd-input').value;
+  if(await sha256(v)===PWD_HASH){
+    sessionStorage.setItem('auth','1');
+    document.getElementById('gate').style.display='none';
+    document.getElementById('app').style.display='block';
     loadData();
-  } else {
-    document.getElementById('gate-error').textContent = 'Неверный пароль';
-    document.getElementById('pwd-input').value = '';
-  }
+  }else{document.getElementById('gate-error').textContent='Неверный пароль';document.getElementById('pwd-input').value=''}
 }
-if (sessionStorage.getItem('auth') === '1') {
-  document.getElementById('gate').style.display = 'none';
-  document.getElementById('app').style.display = 'block';
-}
+if(sessionStorage.getItem('auth')==='1'){document.getElementById('gate').style.display='none';document.getElementById('app').style.display='block'}
 
 // ── STATE ──
-let DATA = null, currentTab = 'leads', dateFrom = null, dateTo = null, charts = {};
+let DATA=null,currentTab='leads',dateFrom=null,dateTo=null,charts={};
+const COLORS=['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e','#ff7b72','#ffa657','#79c0ff'];
+const DOW=['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
 
-function today() { return new Date().toISOString().slice(0,10); }
-function daysAgo(n) { const d = new Date(); d.setDate(d.getDate()-n); return d.toISOString().slice(0,10); }
+function today(){return new Date().toISOString().slice(0,10)}
+function daysAgo(n){const d=new Date();d.setDate(d.getDate()-n);return d.toISOString().slice(0,10)}
+function fmt(n){return Math.round(n||0).toLocaleString('ru-RU')}
+function fmtM(n){return Math.round(n||0).toLocaleString('ru-RU')+' ₽'}
+function pct(a,b){return b?Math.round(a/b*100)+'%':'—'}
+function pctN(a,b){return b?Math.round(a/b*100):0}
 
-function setPeriod(days, btn) {
-  dateFrom = daysAgo(days); dateTo = today();
-  document.getElementById('date-from').value = dateFrom;
-  document.getElementById('date-to').value = dateTo;
-  document.querySelectorAll('#period-btns .filter-btn').forEach(b => b.classList.remove('active'));
-  btn.classList.add('active');
-  render();
+function setPeriod(days,btn){
+  dateFrom=daysAgo(days);dateTo=today();
+  document.getElementById('date-from').value=dateFrom;
+  document.getElementById('date-to').value=dateTo;
+  document.querySelectorAll('#period-btns .filter-btn').forEach(b=>b.classList.remove('active'));
+  btn.classList.add('active');render();
 }
-function setPeriodCustom() {
-  dateFrom = document.getElementById('date-from').value;
-  dateTo = document.getElementById('date-to').value;
-  document.querySelectorAll('#period-btns .filter-btn').forEach(b => b.classList.remove('active'));
-  if (dateFrom && dateTo) render();
+function setPeriodCustom(){
+  dateFrom=document.getElementById('date-from').value;
+  dateTo=document.getElementById('date-to').value;
+  document.querySelectorAll('#period-btns .filter-btn').forEach(b=>b.classList.remove('active'));
+  if(dateFrom&&dateTo)render();
 }
-function switchTab(tab) {
-  currentTab = tab;
-  document.querySelectorAll('.tab').forEach((t,i) => t.classList.toggle('active', ['leads','deals','overview'][i] === tab));
-  document.querySelectorAll('.tab-content').forEach(t => t.classList.remove('active'));
+function switchTab(tab){
+  currentTab=tab;
+  document.querySelectorAll('.tab').forEach((t,i)=>t.classList.toggle('active',['leads','deals','overview','funnel','finance','bi'][i]===tab));
+  document.querySelectorAll('.tab-content').forEach(t=>t.classList.remove('active'));
   document.getElementById('tab-'+tab).classList.add('active');
   render();
 }
 
 // ── DATA LOADING ──
-async function loadData() {
-  try {
-    const r = await fetch('data/dashboard.json?_='+Date.now());
-    if (!r.ok) throw new Error('HTTP '+r.status);
-    DATA = await r.json();
-
-    dateFrom = daysAgo(30); dateTo = today();
-    document.getElementById('date-from').value = dateFrom;
-    document.getElementById('date-to').value = dateTo;
-
-    if (DATA.generated_at) {
-      const d = new Date(DATA.generated_at);
-      document.getElementById('updated-at').textContent =
-        'Обновлено: '+d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+async function loadData(silent=false){
+  try{
+    const r=await fetch('data/dashboard.json?_='+Date.now());
+    if(!r.ok)throw new Error('HTTP '+r.status);
+    DATA=await r.json();
+    if(!silent){
+      dateFrom=daysAgo(30);dateTo=today();
+      document.getElementById('date-from').value=dateFrom;
+      document.getElementById('date-to').value=dateTo;
+      if(DATA.generated_at){
+        const d=new Date(DATA.generated_at);
+        document.getElementById('updated-at').textContent='Обновлено: '+d.toLocaleString('ru-RU',{day:'2-digit',month:'2-digit',year:'numeric',hour:'2-digit',minute:'2-digit'});
+      }
+      const csel=document.getElementById('city-filter');
+      const ssel=document.getElementById('source-filter');
+      const citySet=new Set(Object.values(DATA.meta.categories||{}));
+      citySet.forEach(c=>{const o=document.createElement('option');o.value=c;o.textContent=c;csel.appendChild(o)});
+      Object.entries(DATA.meta.sources||{}).forEach(([id,name])=>{const o=document.createElement('option');o.value=id;o.textContent=name;ssel.appendChild(o)});
     }
-
-    // City filter
-    const citySet = new Set();
-    Object.values(DATA.meta.categories||{}).forEach(c => citySet.add(c));
-    const csel = document.getElementById('city-filter');
-    citySet.forEach(c => { const o=document.createElement('option'); o.value=c; o.textContent=c; csel.appendChild(o); });
-
-    // Source filter
-    const srcSel = document.getElementById('source-filter');
-    const sources = DATA.meta.sources || {};
-    Object.entries(sources).forEach(([id,name]) => {
-      const o=document.createElement('option'); o.value=id; o.textContent=name; srcSel.appendChild(o);
-    });
-
     render();
-  } catch(e) {
-    document.querySelector('main').innerHTML = `<div class="error-msg">Ошибка загрузки данных: ${e.message}<br><small>Убедитесь что GitHub Actions отработал и data/dashboard.json существует.</small></div>`;
+  }catch(e){
+    document.querySelector('main').innerHTML=`<div class="error-msg">Ошибка загрузки: ${e.message}</div>`;
   }
 }
-
-// ── UTILS ──
-function fmt(n) { return Math.round(n).toLocaleString('ru-RU'); }
-function fmtMoney(n) { return Math.round(n).toLocaleString('ru-RU')+' ₽'; }
-function pct(a,b) { return b ? Math.round(a/b*100)+'%' : '—'; }
-function pctN(a,b) { return b ? Math.round(a/b*100) : 0; }
+// Auto-refresh every hour
+setInterval(()=>loadData(true),3600000);
 
 // ── AGGREGATION ──
-function getFilteredDays(daily) {
-  return Object.entries(daily).filter(([d]) => d >= dateFrom && d <= dateTo);
+function filteredDays(daily){return Object.entries(daily||{}).filter(([d])=>d>=dateFrom&&d<=dateTo)}
+
+function prevPeriod(){
+  const ms=new Date(dateTo)-new Date(dateFrom);
+  const days=Math.max(1,Math.round(ms/86400000));
+  return{from:daysAgo(days*2+1),to:daysAgo(days+1)};
 }
 
-function prevPeriod() {
-  const ms = new Date(dateTo) - new Date(dateFrom);
-  const days = Math.round(ms/86400000);
-  const pTo = daysAgo(days+1);
-  const pFrom = daysAgo(days*2+1);
-  return { from: pFrom, to: pTo };
+function aggLeads(from,to){
+  const city=document.getElementById('city-filter').value;
+  const src=document.getElementById('source-filter').value;
+  const t={t:0,s:{},c:{},src:{}};
+  Object.entries(DATA.leads.daily||{}).filter(([d])=>d>=from&&d<=to).forEach(([,day])=>{
+    let scale=1;
+    if(src&&day.src){const sc=day.src[src]||0;scale=day.t?sc/day.t:0}
+    if(city){
+      const cnt=(day.c?.[city]||0)*scale;if(!cnt)return;
+      const fs=day.t?cnt/day.t:0;
+      t.t+=cnt;
+      Object.entries(day.s||{}).forEach(([k,v])=>t.s[k]=(t.s[k]||0)+v*fs);
+      t.c[city]=(t.c[city]||0)+cnt;
+    }else{
+      t.t+=(day.t||0)*scale;
+      Object.entries(day.s||{}).forEach(([k,v])=>t.s[k]=(t.s[k]||0)+v*scale);
+      Object.entries(day.c||{}).forEach(([k,v])=>t.c[k]=(t.c[k]||0)+v*scale);
+      Object.entries(day.src||{}).forEach(([k,v])=>t.src[k]=(t.src[k]||0)+v);
+    }
+  });
+  return t;
 }
 
-function aggregateLeads(from, to, cityOverride, srcOverride) {
-  const city = cityOverride !== undefined ? cityOverride : document.getElementById('city-filter').value;
-  const src  = srcOverride  !== undefined ? srcOverride  : document.getElementById('source-filter').value;
-  const totals = { t:0, s:{}, c:{}, src:{} };
-  const entries = Object.entries(DATA.leads.daily).filter(([d]) => d >= from && d <= to);
-  for (const [,day] of entries) {
-    let scale = 1;
-    if (src && day.src) {
-      const srcCnt = day.src[src] || 0;
-      scale = day.t ? srcCnt/day.t : 0;
+function aggDeals(from,to){
+  const city=document.getElementById('city-filter').value;
+  const t={t:0,g:{},c:{},r:0,won_r:0,inst:0,inst_r:0,plan:0,plan_r:0};
+  Object.entries(DATA.deals.daily||{}).filter(([d])=>d>=from&&d<=to).forEach(([,day])=>{
+    if(city){
+      const cnt=day.c?.[city]||0;if(!cnt)return;
+      const sc=day.t?cnt/day.t:0;
+      t.t+=cnt;
+      Object.entries(day.g||{}).forEach(([k,v])=>t.g[k]=(t.g[k]||0)+Math.round(v*sc));
+      t.c[city]=(t.c[city]||0)+cnt;
+      t.r+=(day.r||0)*sc;t.won_r+=(day.won_r||0)*sc;
+      t.inst+=(day.inst||0)*sc;t.inst_r+=(day.inst_r||0)*sc;
+      t.plan+=(day.plan||0)*sc;t.plan_r+=(day.plan_r||0)*sc;
+    }else{
+      t.t+=day.t||0;
+      Object.entries(day.g||{}).forEach(([k,v])=>t.g[k]=(t.g[k]||0)+v);
+      Object.entries(day.c||{}).forEach(([k,v])=>t.c[k]=(t.c[k]||0)+v);
+      t.r+=day.r||0;t.won_r+=day.won_r||0;
+      t.inst+=day.inst||0;t.inst_r+=day.inst_r||0;
+      t.plan+=day.plan||0;t.plan_r+=day.plan_r||0;
     }
-    if (city) {
-      const cnt = (day.c?.[city]||0) * scale;
-      if (!cnt) continue;
-      const finalScale = day.t ? cnt/day.t : 0;
-      totals.t += cnt;
-      for (const [s,v] of Object.entries(day.s||{})) totals.s[s] = (totals.s[s]||0) + v*finalScale;
-      totals.c[city] = (totals.c[city]||0) + cnt;
-    } else {
-      totals.t += (day.t||0)*scale;
-      for (const [s,v] of Object.entries(day.s||{})) totals.s[s] = (totals.s[s]||0) + v*scale;
-      for (const [c,v] of Object.entries(day.c||{})) totals.c[c] = (totals.c[c]||0) + v*scale;
-      for (const [s,v] of Object.entries(day.src||{})) totals.src[s] = (totals.src[s]||0) + v;
-    }
-  }
-  return totals;
+  });
+  return t;
 }
 
-function aggregateDeals(from, to, cityOverride) {
-  const city = cityOverride !== undefined ? cityOverride : document.getElementById('city-filter').value;
-  const totals = { t:0, g:{}, c:{}, r:0, inst:0, inst_r:0, plan:0, plan_r:0 };
-  const entries = Object.entries(DATA.deals.daily).filter(([d]) => d >= from && d <= to);
-  for (const [,day] of entries) {
-    if (city) {
-      const cnt = day.c?.[city]||0;
-      if (!cnt) continue;
-      const scale = day.t ? cnt/day.t : 0;
-      totals.t += cnt;
-      for (const [s,v] of Object.entries(day.g||{})) totals.g[s] = (totals.g[s]||0) + Math.round(v*scale);
-      totals.c[city] = (totals.c[city]||0) + cnt;
-      totals.r += (day.r||0)*scale;
-      totals.inst += (day.inst||0)*scale;
-      totals.inst_r += (day.inst_r||0)*scale;
-      totals.plan += (day.plan||0)*scale;
-      totals.plan_r += (day.plan_r||0)*scale;
-    } else {
-      totals.t += day.t||0;
-      for (const [s,v] of Object.entries(day.g||{})) totals.g[s] = (totals.g[s]||0) + v;
-      for (const [c,v] of Object.entries(day.c||{})) totals.c[c] = (totals.c[c]||0) + v;
-      totals.r += day.r||0;
-      totals.inst += day.inst||0;
-      totals.inst_r += day.inst_r||0;
-      totals.plan += day.plan||0;
-      totals.plan_r += day.plan_r||0;
-    }
-  }
-  return totals;
+function aggOps(type){
+  const months=new Set();
+  let cur=new Date(new Date(dateFrom).getFullYear(),new Date(dateFrom).getMonth(),1);
+  const toD=new Date(dateTo);
+  while(cur<=toD){months.add(cur.toISOString().slice(0,7));cur.setMonth(cur.getMonth()+1)}
+  const res={};
+  months.forEach(m=>{
+    Object.entries(DATA[type].operators?.[m]||{}).forEach(([op,d])=>{
+      if(!res[op])res[op]={t:0,s:{},r:0,g:{}};
+      res[op].t+=d.t||0;res[op].r+=d.r||0;
+      Object.entries(d.s||{}).forEach(([k,v])=>res[op].s[k]=(res[op].s[k]||0)+v);
+      Object.entries(d.g||{}).forEach(([k,v])=>res[op].g[k]=(res[op].g[k]||0)+v);
+    });
+  });
+  return res;
 }
 
-function aggregateOperators(type) {
-  const months = new Set();
-  const from = new Date(dateFrom), to = new Date(dateTo);
-  let cur = new Date(from.getFullYear(), from.getMonth(), 1);
-  while (cur <= to) { months.add(cur.toISOString().slice(0,7)); cur.setMonth(cur.getMonth()+1); }
-  const combined = {};
-  const opData = DATA[type].operators||{};
-  for (const month of months) {
-    for (const [op,d] of Object.entries(opData[month]||{})) {
-      if (!combined[op]) combined[op] = {t:0,s:{},r:0,g:{}};
-      combined[op].t += d.t||0;
-      combined[op].r += d.r||0;
-      for (const [k,v] of Object.entries(d.s||{})) combined[op].s[k] = (combined[op].s[k]||0)+v;
-      for (const [k,v] of Object.entries(d.g||{})) combined[op].g[k] = (combined[op].g[k]||0)+v;
-    }
-  }
-  return combined;
+// ── CHART HELPERS ──
+function mkChart(id,type,labels,datasets,opts={}){
+  if(charts[id]){charts[id].destroy();delete charts[id]}
+  const ctx=document.getElementById(id)?.getContext('2d');if(!ctx)return;
+  charts[id]=new Chart(ctx,{type,data:{labels,datasets},options:{
+    responsive:true,maintainAspectRatio:true,
+    plugins:{legend:{labels:{color:'#8b949e',font:{size:11}}},...(opts.plugins||{})},
+    scales:type!=='doughnut'?{
+      x:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}},
+      y:{ticks:{color:'#8b949e',font:{size:10}},grid:{color:'rgba(255,255,255,.04)'}}
+    }:undefined,
+    ...opts
+  }});
+}
+
+function renderDonut(id,labels,values){
+  mkChart(id,'doughnut',labels,[{data:values,backgroundColor:COLORS,borderColor:'var(--card)',borderWidth:2}],{
+    plugins:{legend:{position:'right',labels:{color:'#8b949e',font:{size:11},padding:10,boxWidth:12}},
+    tooltip:{callbacks:{label:c=>` ${c.label}: ${fmt(c.raw)}`}}}
+  });
+}
+
+function renderLine(id,labels,datasets){
+  mkChart(id,'line',labels,datasets,{interaction:{mode:'index',intersect:false}});
+}
+
+function renderBar(id,labels,datasets,horizontal=false){
+  mkChart(id,horizontal?'bar':'bar',labels,datasets,{
+    indexAxis:horizontal?'y':'x',
+    plugins:{legend:{display:datasets.length>1,labels:{color:'#8b949e',font:{size:11}}}}
+  });
 }
 
 // ── RENDER HELPERS ──
-const FUNNEL_COLORS = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e'];
-const DONUT_COLORS  = ['#58a6ff','#3fb950','#a371f7','#d29922','#39d353','#f85149','#8b949e','#ff7b72','#ffa657','#79c0ff'];
-const DOW = ['Пн','Вт','Ср','Чт','Пт','Сб','Вс'];
-const HOUR_LABELS = ['00','02','04','06','08','10','12','14','16','18','20','22'];
-
-function renderCard(label, value, cls='', sub='', delta='') {
-  return `<div class="card">
-    <div class="card-label">${label}</div>
-    <div class="card-value ${cls}">${value}</div>
-    ${sub ? `<div class="card-sub">${sub}</div>` : ''}
-    ${delta ? delta : ''}
-  </div>`;
+function card(label,value,cls='',sub=''){
+  return`<div class="card"><div class="card-label">${label}</div><div class="card-value ${cls}">${value}</div>${sub?`<div class="card-sub">${sub}</div>`:''}</div>`;
 }
 
-function renderFunnel(el, rows, total) {
-  el.innerHTML = rows.map(([label,count,prevTotal],i) => {
-    const fromPrev = prevTotal != null ? pct(count, prevTotal) : null;
-    return `<div class="funnel-row">
-      <div class="funnel-label">${label}</div>
-      <div class="funnel-bar-wrap">
-        <div class="funnel-bar" style="width:${total?Math.max(count/total*100,1):0}%;background:${FUNNEL_COLORS[i%FUNNEL_COLORS.length]}">
-          ${count>0?fmt(count):''}
-        </div>
-      </div>
-      <div class="funnel-pct">${pct(count,total)}${fromPrev?` <span style="color:var(--muted);font-size:10px">(${fromPrev} пред)</span>`:''}</div>
-    </div>`;
-  }).join('');
-}
-
-function renderCityBars(el, cityMap, suffix='') {
-  const sorted = Object.entries(cityMap).sort((a,b)=>b[1]-a[1]).slice(0,12);
-  const max = sorted[0]?.[1]||1;
-  el.innerHTML = sorted.map(([city,cnt]) => `
-    <div class="city-row">
-      <div class="city-label">${city}</div>
-      <div class="city-bar-wrap"><div class="city-bar" style="width:${cnt/max*100}%"></div></div>
-      <div class="city-count">${suffix ? fmtMoney(cnt) : fmt(cnt)}</div>
-    </div>`).join('');
-}
-
-function renderDonut(canvasId, labels, values) {
-  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
-  const ctx = document.getElementById(canvasId)?.getContext('2d');
-  if (!ctx) return;
-  charts[canvasId] = new Chart(ctx, {
-    type: 'doughnut',
-    data: { labels, datasets: [{ data: values, backgroundColor: DONUT_COLORS, borderColor: 'var(--card)', borderWidth: 2 }] },
-    options: {
-      responsive:true, maintainAspectRatio:true,
-      plugins: {
-        legend: { position:'right', labels:{ color:'#8b949e', font:{size:12}, padding:12, boxWidth:14 } },
-        tooltip: { callbacks: { label: ctx => ` ${ctx.label}: ${fmt(ctx.raw)}` } }
-      }
-    }
-  });
-}
-
-function renderLineChart(canvasId, labels, datasets) {
-  if (charts[canvasId]) { charts[canvasId].destroy(); delete charts[canvasId]; }
-  const ctx = document.getElementById(canvasId)?.getContext('2d');
-  if (!ctx) return;
-  charts[canvasId] = new Chart(ctx, {
-    type: 'line',
-    data: { labels, datasets },
-    options: {
-      responsive:true, maintainAspectRatio:true,
-      interaction: { mode:'index', intersect:false },
-      plugins: { legend: { labels: { color:'#8b949e', font:{size:12} } } },
-      scales: {
-        x: { ticks: { color:'#8b949e', font:{size:11} }, grid: { color:'rgba(255,255,255,.05)' } },
-        y: { ticks: { color:'#8b949e', font:{size:11} }, grid: { color:'rgba(255,255,255,.05)' } }
-      }
-    }
-  });
-}
-
-function renderHeatmap(el, daily) {
-  const dow = [0,0,0,0,0,0,0]; // Mon=0..Sun=6
-  for (const [date, day] of Object.entries(DATA.leads.daily)) {
-    if (date < dateFrom || date > dateTo) continue;
-    const d = new Date(date);
-    const idx = (d.getDay()+6)%7;
-    dow[idx] += daily === 'leads' ? (day.t||0) : 0;
-  }
-  if (daily === 'deals') {
-    for (const [date, day] of Object.entries(DATA.deals.daily)) {
-      if (date < dateFrom || date > dateTo) continue;
-      const d = new Date(date);
-      const idx = (d.getDay()+6)%7;
-      dow[idx] += day.t||0;
-    }
-  }
-  const max = Math.max(...dow, 1);
-  const headers = DOW.map(d => `<div class="hm-header">${d}</div>`).join('');
-  const cells = dow.map((v,i) => {
-    const intensity = v/max;
-    const bg = daily==='leads'
-      ? `rgba(88,166,255,${0.1+intensity*0.85})`
-      : `rgba(163,113,247,${0.1+intensity*0.85})`;
-    return `<div class="hm-cell" style="background:${bg}">${fmt(v)}</div>`;
-  }).join('');
-  el.innerHTML = `<div class="hm-label"></div>${headers}<div class="hm-label">Всего</div>${cells}`;
-}
-
-function renderCompare(containerId, metrics) {
-  document.getElementById(containerId).innerHTML = metrics.map(({label, cur, prev, money}) => {
-    const diff = cur - prev;
-    const pctChange = prev ? Math.round(diff/prev*100) : 0;
-    let cls = 'delta-flat', arrow = '→';
-    if (diff > 0) { cls='delta-up'; arrow='↑'; }
-    if (diff < 0) { cls='delta-down'; arrow='↓'; }
-    return `<div class="compare-card">
-      <div class="compare-label">${label}</div>
+function compare(id,metrics){
+  document.getElementById(id).innerHTML=metrics.map(({label,cur,prev,money})=>{
+    const diff=cur-prev,p=prev?Math.round(diff/prev*100):0;
+    const cls=diff>0?'delta-up':diff<0?'delta-down':'delta-flat';
+    const arrow=diff>0?'↑':diff<0?'↓':'→';
+    return`<div class="compare-card"><div class="compare-label">${label}</div>
       <div class="compare-vals">
-        <span class="compare-cur">${money?fmtMoney(cur):fmt(cur)}</span>
-        <span class="compare-prev">vs ${money?fmtMoney(prev):fmt(prev)}</span>
-        <span class="compare-delta ${cls}">${arrow} ${Math.abs(pctChange)}%</span>
-      </div>
+        <span class="compare-cur">${money?fmtM(cur):fmt(cur)}</span>
+        <span class="compare-prev">vs ${money?fmtM(prev):fmt(prev)}</span>
+        <span class="compare-delta ${cls}">${arrow} ${Math.abs(p)}%</span>
+      </div></div>`;
+  }).join('');
+}
+
+function funnel(el,rows){
+  el.innerHTML=rows.map(([label,count,prev,total],i)=>{
+    const pctOfPrev=prev?pct(count,prev):'—';
+    const pctOfTotal=total?pct(count,total):'—';
+    return`<div class="funnel-row">
+      <div class="funnel-label">${label}</div>
+      <div class="funnel-bar-wrap"><div class="funnel-bar" style="width:${total?Math.max((count/total)*100,1):0}%;background:${COLORS[i%COLORS.length]}">${count>0?fmt(count):''}</div></div>
+      <div class="funnel-pct">${pctOfPrev}<br><span style="font-size:10px;opacity:.6">${pctOfTotal} от всех</span></div>
     </div>`;
   }).join('');
 }
 
-// ── LEADS ──
-function renderLeads() {
-  const agg = aggregateLeads(dateFrom, dateTo);
-  const pp = prevPeriod();
-  const aggPrev = aggregateLeads(pp.from, pp.to);
-  const meta = DATA.meta;
-  const s = agg.s;
+function cityBars(el,map,money=false){
+  const sorted=Object.entries(map).sort((a,b)=>b[1]-a[1]).slice(0,12);
+  const max=sorted[0]?.[1]||1;
+  el.innerHTML=sorted.map(([c,v])=>`<div class="city-row">
+    <div class="city-label">${c}</div>
+    <div class="city-bar-wrap"><div class="city-bar" style="width:${v/max*100}%"></div></div>
+    <div class="city-count">${money?fmtM(v):fmt(v)}</div>
+  </div>`).join('');
+}
 
-  const inWork   = s['IN_PROCESS']||0;
-  const recorded = (s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
-  const came     = s['CONVERTED']||0;
-  const junk     = (s['JUNK']||0)+(s['1']||0);
-  const notReach = s['PROCESSED']||0;
-  const condRef  = s['3']||0;
-  const canceled = s['UC_KXIWFH']||0;
-  const notRec   = s['UC_I0XLWE']||0;
+function heatmap(el,type){
+  const dow=[0,0,0,0,0,0,0];
+  Object.entries(DATA[type].daily||{}).forEach(([date,day])=>{
+    if(date<dateFrom||date>dateTo)return;
+    const idx=(new Date(date).getDay()+6)%7;
+    dow[idx]+=day.t||0;
+  });
+  const max=Math.max(...dow,1);
+  const hdr=DOW.map(d=>`<div class="hm-header">${d}</div>`).join('');
+  const cells=dow.map((v,i)=>{
+    const int=v/max;
+    const bg=type==='leads'?`rgba(88,166,255,${.08+int*.82})`:`rgba(163,113,247,${.08+int*.82})`;
+    return`<div class="hm-cell" style="background:${bg}">${fmt(v)}</div>`;
+  }).join('');
+  el.innerHTML=`<div class="hm-label"></div>${hdr}<div class="hm-label">Всего</div>${cells}`;
+}
 
-  const prevCame = aggPrev.s['CONVERTED']||0;
-  const prevRec  = (aggPrev.s['UC_W36M8K']||0)+(aggPrev.s['UC_CI0W8O']||0)+(aggPrev.s['UC_TD7XTT']||0);
+// ── TAB 1: LEADS ──
+function renderLeads(){
+  const agg=aggLeads(dateFrom,dateTo);
+  const pp=prevPeriod();const aggP=aggLeads(pp.from,pp.to);
+  const s=agg.s;
+  const pcp=(s['UC_I0XLWE']||0)+(s['UC_KXIWFH']||0)+(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0)+(s['CONVERTED']||0);
+  const rec=(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
+  const confirmed=(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
+  const came=s['CONVERTED']||0;
+  const junk=(s['JUNK']||0)+(s['1']||0);
+  const inWork=s['IN_PROCESS']||0;
+  const miss=s['PROCESSED']||0;
+  const notRec=s['UC_I0XLWE']||0;
+  const canceled=s['UC_KXIWFH']||0;
+  const condRef=s['3']||0;
+  const pcpP=(aggP.s['UC_I0XLWE']||0)+(aggP.s['UC_KXIWFH']||0)+(aggP.s['UC_W36M8K']||0)+(aggP.s['UC_CI0W8O']||0)+(aggP.s['UC_TD7XTT']||0)+(aggP.s['CONVERTED']||0);
 
-  renderCompare('leads-compare', [
-    { label:'Всего лидов',    cur:Math.round(agg.t),    prev:Math.round(aggPrev.t) },
-    { label:'Записаны',       cur:Math.round(recorded),  prev:Math.round(prevRec) },
-    { label:'Пришли',         cur:Math.round(came),      prev:Math.round(prevCame) },
-    { label:'Некачественные', cur:Math.round(junk),      prev:Math.round(aggPrev.s['JUNK']||0)+(aggPrev.s['1']||0) },
+  compare('leads-compare',[
+    {label:'Всего лидов',cur:Math.round(agg.t),prev:Math.round(aggP.t)},
+    {label:'ПЦП',cur:Math.round(pcp),prev:Math.round(pcpP)},
+    {label:'Пришли',cur:Math.round(came),prev:Math.round(aggP.s['CONVERTED']||0)},
+    {label:'Некачественные',cur:Math.round(junk),prev:Math.round((aggP.s['JUNK']||0)+(aggP.s['1']||0))},
   ]);
 
-  document.getElementById('leads-cards').innerHTML =
-    renderCard('Всего лидов',     fmt(agg.t),       'accent') +
-    renderCard('Взяты в работу',  fmt(inWork),       '', pct(inWork,agg.t)+' от всех') +
-    renderCard('Недозвон',        fmt(notReach),     'orange') +
-    renderCard('Не записан',      fmt(notRec),       '') +
-    renderCard('Отменил запись',  fmt(canceled),     '') +
-    renderCard('Записан',         fmt(recorded),     'green', pct(recorded,agg.t)+' от всех') +
-    renderCard('Условный отказ',  fmt(condRef),      '') +
-    renderCard('Пришёл',          fmt(came),         'green', pct(came,agg.t)+' конверсия') +
-    renderCard('Некачественный',  fmt(junk),         'red',   pct(junk,agg.t)+' от всех');
+  document.getElementById('leads-cards').innerHTML=
+    card('Всего лидов',fmt(agg.t),'accent')+
+    card('ПЦП',fmt(pcp),'purple',pct(pcp,agg.t)+' от всех')+
+    card('Взяты в работу',fmt(inWork),'',pct(inWork,agg.t)+' от всех')+
+    card('Недозвон',fmt(miss),'orange')+
+    card('Не записан',fmt(notRec),'')+
+    card('Отменил запись',fmt(canceled),'')+
+    card('Записан',fmt(rec),'green',pct(rec,agg.t)+' от всех')+
+    card('Условный отказ',fmt(condRef),'')+
+    card('Пришёл',fmt(came),'green',pct(came,agg.t)+' конверсия')+
+    card('Некачественный',fmt(junk),'red',pct(junk,agg.t)+' от всех');
 
-  renderFunnel(document.getElementById('leads-funnel'), [
-    ['Всего лидов',    agg.t,     null],
-    ['Взяты в работу', inWork,    agg.t],
-    ['Записан',        recorded,  inWork],
-    ['Подтверждён',    (s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0), recorded],
-    ['Пришёл',         came,      recorded],
-  ], agg.t);
+  funnel(document.getElementById('leads-funnel'),[
+    ['Всего лидов',    agg.t,  null,  agg.t],
+    ['ПЦП',           pcp,    agg.t,  agg.t],
+    ['Записан',        rec,    pcp,    agg.t],
+    ['Подтверждён',   confirmed, rec, agg.t],
+    ['Пришёл',         came,   rec,    agg.t],
+  ]);
 
-  renderCityBars(document.getElementById('leads-cities'), agg.c);
+  cityBars(document.getElementById('leads-cities'),agg.c);
 
-  // Sources
-  const srcNames = meta.sources||{};
-  const srcNamed = {};
-  for (const [id,cnt] of Object.entries(agg.src||{})) {
-    srcNamed[srcNames[id]||'Источник '+id] = cnt;
-  }
-  renderCityBars(document.getElementById('leads-sources'), srcNamed);
+  const srcNames=DATA.meta.sources||{};
+  const srcNamed={};
+  Object.entries(agg.src||{}).forEach(([id,cnt])=>{srcNamed[srcNames[id]||'Источник '+id]=cnt});
+  cityBars(document.getElementById('leads-sources'),srcNamed);
 
-  const statusOrder = meta.lead_status_order||Object.keys(s);
-  const dLabels=[], dVals=[];
-  for (const sid of statusOrder) {
-    if (s[sid]) { dLabels.push(meta.lead_statuses[sid]||sid); dVals.push(Math.round(s[sid])); }
-  }
-  renderDonut('leads-donut', dLabels, dVals);
+  const sl=DATA.meta.lead_status_order||[];
+  const dl=[],dv=[];
+  sl.forEach(sid=>{if(s[sid]){dl.push(DATA.meta.lead_statuses[sid]||sid);dv.push(Math.round(s[sid]))}});
+  renderDonut('leads-donut',dl,dv);
+  heatmap(document.getElementById('leads-heatmap'),'leads');
 
-  renderHeatmap(document.getElementById('leads-heatmap'), 'leads');
+  const ops=aggOps('leads');const users=DATA.meta.users||{};
+  const rows=Object.entries(ops).map(([id,d])=>{
+    const rec2=(d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0);
+    const came2=d.s['CONVERTED']||0;
+    const junk2=(d.s['JUNK']||0)+(d.s['1']||0);
+    const pcp2=(d.s['UC_I0XLWE']||0)+(d.s['UC_KXIWFH']||0)+(d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0)+came2;
+    const cp=d.t?came2/d.t*100:0;
+    return{id,d,name:users[id]||'Оператор '+id,rec:rec2,came:came2,junk:junk2,pcp:pcp2,cp};
+  }).filter(r=>r.d.t>0).sort((a,b)=>b.cp-a.cp);
 
-  // Operator table sorted by conversion %
-  const ops = aggregateOperators('leads');
-  const users = meta.users||{};
-  const rows = Object.entries(ops)
-    .map(([id,d]) => {
-      const rec2  = (d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0);
-      const conv2 = d.s['CONVERTED']||0;
-      const junk2 = (d.s['JUNK']||0)+(d.s['1']||0);
-      return { id, d, name: users[id]||'Оператор '+id, rec:rec2, conv:conv2, junk:junk2,
-               convPct: d.t ? conv2/d.t*100 : 0 };
-    })
-    .filter(r => r.d.t > 0)
-    .sort((a,b) => b.convPct - a.convPct);
-
-  document.getElementById('leads-op-table').innerHTML = rows.slice(0,20).map((r,i) => `<tr>
-    <td style="color:var(--muted)">${i+1}</td>
-    <td>${r.name}</td>
+  document.getElementById('leads-op-table').innerHTML=rows.slice(0,20).map((r,i)=>`<tr>
+    <td style="color:var(--muted)">${i+1}</td><td>${r.name}</td>
     <td><strong>${fmt(r.d.t)}</strong></td>
+    <td><span class="badge badge-purple">${fmt(r.pcp)}</span></td>
     <td>${fmt(r.d.s['IN_PROCESS']||0)}</td>
     <td>${fmt(r.rec)}</td>
-    <td><span class="badge badge-green">${fmt(r.conv)}</span></td>
+    <td><span class="badge badge-green">${fmt(r.came)}</span></td>
     <td><span class="badge badge-red">${fmt(r.junk)}</span></td>
-    <td><span class="badge badge-blue">${Math.round(r.convPct)}%</span></td>
-  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+    <td><span class="badge badge-blue">${Math.round(r.cp)}%</span></td>
+  </tr>`).join('')||'<tr><td colspan="9" style="color:var(--muted);text-align:center;padding:20px">Нет данных</td></tr>';
 }
 
-// ── DEALS ──
-function renderDeals() {
-  const agg = aggregateDeals(dateFrom, dateTo);
-  const pp = prevPeriod();
-  const aggPrev = aggregateDeals(pp.from, pp.to);
-  const meta = DATA.meta;
-  const g = agg.g;
+// ── TAB 2: DEALS ──
+function renderDeals(){
+  const agg=aggDeals(dateFrom,dateTo);
+  const pp=prevPeriod();const aggP=aggDeals(pp.from,pp.to);
+  const g=agg.g;
+  const came=g['NEW']||0;
+  const tm=(g['PREPARATION']||0)+(g['6']||0)+(g['UC_LNVU9C']||0);
+  const pres=(g['PREPAYMENT_INVOICE']||0)+(g['PREPAYMENT_INVOIC']||0);
+  const exam=(g['EXECUTING']||0)+(g['UC_MLCFYZ']||0);
+  const close=(g['FINAL_INVOICE']||0)+(g['UC_IA4RQ3']||0);
+  const fin=(g['1']||0)+(g['UC_FCWL21']||0)+(g['7']||0)+(g['UC_MSD2TV']||0);
+  const won=g['WON']||0;
+  const lost=(g['LOSE']||0)+(g['APOLOGY']||0)+(g['UC_ZFGB34']||0);
+  const avgChk=won>0?agg.won_r/won:0;
+  const wonP=aggP.g['WON']||0;
 
-  const came        = g['NEW']||0;
-  const tmAssigned  = (g['PREPARATION']||0)+(g['6']||0)+(g['UC_LNVU9C']||0);
-  const presentation= (g['PREPAYMENT_INVOICE']||0)+(g['PREPAYMENT_INVOIC']||0);
-  const exam        = (g['EXECUTING']||0)+(g['UC_MLCFYZ']||0);
-  const closing     = (g['FINAL_INVOICE']||0)+(g['UC_IA4RQ3']||0);
-  const finance     = (g['1']||0)+(g['UC_FCWL21']||0)+(g['7']||0)+(g['UC_MSD2TV']||0);
-  const won         = g['WON']||0;
-  const lost        = (g['LOSE']||0)+(g['APOLOGY']||0)+(g['UC_ZFGB34']||0);
-
-  const prevWon = aggPrev.g['WON']||0;
-
-  renderCompare('deals-compare', [
-    { label:'Всего сделок',    cur:agg.t,        prev:aggPrev.t },
-    { label:'Успешных',        cur:won,          prev:prevWon },
-    { label:'Выручка',         cur:agg.r,        prev:aggPrev.r, money:true },
-    { label:'Провалено',       cur:lost,         prev:(aggPrev.g['LOSE']||0)+(aggPrev.g['APOLOGY']||0) },
+  compare('deals-compare',[
+    {label:'Всего сделок',cur:agg.t,prev:aggP.t},
+    {label:'Успешных',cur:won,prev:wonP},
+    {label:'Выручка WON',cur:agg.won_r,prev:aggP.won_r,money:true},
+    {label:'Провалено',cur:lost,prev:(aggP.g['LOSE']||0)+(aggP.g['APOLOGY']||0)},
   ]);
 
-  const avgDeal = won > 0 ? agg.r/won : 0;
+  document.getElementById('deals-cards').innerHTML=
+    card('Всего сделок',fmt(agg.t),'accent')+
+    card('Пришел',fmt(came),'',pct(came,agg.t)+' от всех')+
+    card('Назначен ТМ',fmt(tm),'')+
+    card('На презентации',fmt(pres),'')+
+    card('На осмотре',fmt(exam),'')+
+    card('На закрытие',fmt(close),'')+
+    card('Фин отдел',fmt(fin),'orange')+
+    card('Успешна',fmt(won),'green',pct(won,agg.t)+' конверсия')+
+    card('Провалено',fmt(lost),'red')+
+    card('Выручка WON',fmtM(agg.won_r),'green')+
+    card('Средний чек',fmtM(avgChk),'teal','по успешным сделкам');
 
-  document.getElementById('deals-cards').innerHTML =
-    renderCard('Всего сделок',   fmt(agg.t),       'accent') +
-    renderCard('Пришел',         fmt(came),         '', pct(came,agg.t)+' от всех') +
-    renderCard('Назначен ТМ',    fmt(tmAssigned),   '') +
-    renderCard('На презентации', fmt(presentation), '') +
-    renderCard('На осмотре',     fmt(exam),         '') +
-    renderCard('На закрытие',    fmt(closing),      '') +
-    renderCard('Фин отдел',      fmt(finance),      'orange') +
-    renderCard('Успешна',        fmt(won),          'green', pct(won,agg.t)+' конверсия') +
-    renderCard('Провалено',      fmt(lost),         'red') +
-    renderCard('Выручка',        fmtMoney(agg.r),   'green') +
-    renderCard('Средний чек',    fmtMoney(avgDeal),  'teal', 'по успешным сделкам');
+  document.getElementById('deals-finance-cards').innerHTML=
+    card('С рассрочкой',fmt(agg.inst),'purple',pct(agg.inst,agg.t)+' от всех')+
+    card('Остаток по рассрочкам',fmtM(agg.inst_r),'orange')+
+    card('Согласованных планов',fmt(agg.plan),'teal',pct(agg.plan,agg.t)+' от всех')+
+    card('Сумма планов лечения',fmtM(agg.plan_r),'green');
 
-  // Finance cards
-  document.getElementById('deals-finance-cards').innerHTML =
-    renderCard('С рассрочкой',           fmt(agg.inst),          'purple', pct(agg.inst,agg.t)+' от всех') +
-    renderCard('Остаток по рассрочкам',  fmtMoney(agg.inst_r),   'orange') +
-    renderCard('Согласованных планов',   fmt(agg.plan),          'teal',   pct(agg.plan,agg.t)+' от всех') +
-    renderCard('Сумма планов лечения',   fmtMoney(agg.plan_r),   'green');
+  funnel(document.getElementById('deals-funnel'),[
+    ['Всего сделок',   agg.t, null,  agg.t],
+    ['Пришел',         came,  agg.t, agg.t],
+    ['Назначен ТМ',    tm,    came,  agg.t],
+    ['На презентации', pres,  tm,    agg.t],
+    ['На осмотре',     exam,  pres,  agg.t],
+    ['На закрытие',    close, exam,  agg.t],
+    ['Фин отдел',      fin,   close, agg.t],
+    ['Успешно',        won,   agg.t, agg.t],
+  ]);
 
-  renderFunnel(document.getElementById('deals-funnel'), [
-    ['Всего сделок',   agg.t,        null],
-    ['Пришел',         came,         agg.t],
-    ['Назначен ТМ',    tmAssigned,   came],
-    ['На презентации', presentation, tmAssigned],
-    ['На осмотре',     exam,         presentation],
-    ['На закрытие',    closing,      exam],
-    ['Фин отдел',      finance,      closing],
-    ['Успешно',        won,          agg.t],
-  ], agg.t);
+  cityBars(document.getElementById('deals-cities'),agg.c);
 
-  renderCityBars(document.getElementById('deals-cities'), agg.c);
+  // avg check by city
+  const cityR={},cityC={};
+  filteredDays(DATA.deals.daily).forEach(([,day])=>{
+    Object.entries(day.c||{}).forEach(([c,cnt])=>{
+      cityC[c]=(cityC[c]||0)+cnt;
+      const sc=day.t?cnt/day.t:0;
+      cityR[c]=(cityR[c]||0)+(day.won_r||day.r||0)*sc;
+    });
+  });
+  const cityAvg={};Object.keys(cityR).forEach(c=>{if(cityC[c]>0)cityAvg[c]=cityR[c]/cityC[c]});
+  cityBars(document.getElementById('deals-cities-avg'),cityAvg,true);
 
-  // Average deal value by city
-  const cityRevenue = {}, cityCount = {};
-  for (const [, day] of getFilteredDays(DATA.deals.daily)) {
-    for (const [city, cnt] of Object.entries(day.c||{})) {
-      cityCount[city] = (cityCount[city]||0) + cnt;
-      const scale = day.t ? cnt/day.t : 0;
-      cityRevenue[city] = (cityRevenue[city]||0) + (day.r||0)*scale;
-    }
-  }
-  const cityAvg = {};
-  for (const city of Object.keys(cityRevenue)) {
-    if (cityCount[city] > 0) cityAvg[city] = cityRevenue[city]/cityCount[city];
-  }
-  renderCityBars(document.getElementById('deals-cities-avg'), cityAvg, 'money');
+  const sl=DATA.meta.deal_stage_order||[];const dl=[],dv=[];
+  sl.forEach(sid=>{if(g[sid]){dl.push(DATA.meta.deal_stages[sid]||sid);dv.push(g[sid])}});
+  renderDonut('deals-donut',dl,dv);
+  heatmap(document.getElementById('deals-heatmap'),'deals');
 
-  const stageOrder = meta.deal_stage_order||Object.keys(g);
-  const dLabels=[], dVals=[];
-  for (const sid of stageOrder) {
-    if (g[sid]) { dLabels.push(meta.deal_stages[sid]||sid); dVals.push(g[sid]); }
-  }
-  renderDonut('deals-donut', dLabels, dVals);
+  const ops=aggOps('deals');const users=DATA.meta.users||{};
+  const rows=Object.entries(ops).map(([id,d])=>{
+    const won2=d.g['WON']||0;const cp=d.t?won2/d.t*100:0;
+    return{id,d,name:users[id]||'Оператор '+id,won:won2,cp};
+  }).filter(r=>r.d.t>0).sort((a,b)=>b.cp-a.cp);
 
-  renderHeatmap(document.getElementById('deals-heatmap'), 'deals');
-
-  // Operator table sorted by conversion %
-  const ops = aggregateOperators('deals');
-  const users = meta.users||{};
-  const rows = Object.entries(ops)
-    .map(([id,d]) => {
-      const won2 = d.g['WON']||0;
-      return { id, d, name: users[id]||'Оператор '+id, won:won2,
-               convPct: d.t ? won2/d.t*100 : 0 };
-    })
-    .filter(r => r.d.t > 0)
-    .sort((a,b) => b.convPct - a.convPct);
-
-  document.getElementById('deals-op-table').innerHTML = rows.slice(0,20).map((r,i) => `<tr>
-    <td style="color:var(--muted)">${i+1}</td>
-    <td>${r.name}</td>
+  document.getElementById('deals-op-table').innerHTML=rows.slice(0,20).map((r,i)=>`<tr>
+    <td style="color:var(--muted)">${i+1}</td><td>${r.name}</td>
     <td><strong>${fmt(r.d.t)}</strong></td>
     <td>${fmt(r.d.g['NEW']||0)}</td>
     <td>${fmt((r.d.g['PREPARATION']||0)+(r.d.g['6']||0))}</td>
     <td><span class="badge badge-green">${fmt(r.won)}</span></td>
-    <td>${fmtMoney(r.d.r)}</td>
-    <td><span class="badge badge-blue">${Math.round(r.convPct)}%</span></td>
-  </tr>`).join('') || '<tr><td colspan="8" style="color:var(--muted);text-align:center">Нет данных</td></tr>';
+    <td>${fmtM(r.d.r)}</td>
+    <td><span class="badge badge-blue">${Math.round(r.cp)}%</span></td>
+  </tr>`).join('')||'<tr><td colspan="8" style="color:var(--muted);text-align:center;padding:20px">Нет данных</td></tr>';
 }
 
-// ── OVERVIEW ──
-function renderOverview() {
-  const lm = DATA.leads.monthly||{};
-  const dm = DATA.deals.monthly||{};
-  const allMonths = Array.from(new Set([...Object.keys(lm),...Object.keys(dm)])).sort().slice(-18);
+// ── TAB 3: OVERVIEW ──
+function renderOverview(){
+  const lmd=DATA.leads.monthly_detail||{};
+  const dmd=DATA.deals.monthly_detail||{};
+  const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort().slice(-12);
+  const lVals=months.map(m=>lmd[m]?.t||0);
+  const dVals=months.map(m=>dmd[m]?.won||0);
+  const wonR=months.map(m=>dmd[m]?.won_r||0);
+  const avgCheck=months.map((m,i)=>dVals[i]>0?Math.round(wonR[i]/dVals[i]):0);
+  const cvVals=months.map((m,i)=>lVals[i]>0?Math.round(dVals[i]/lVals[i]*100):0);
 
-  const lVals = allMonths.map(m => lm[m]||0);
-  const dVals = allMonths.map(m => dm[m]||0);
-  const cVals = allMonths.map((m,i) => dVals[i]&&lVals[i] ? Math.round(dVals[i]/lVals[i]*100) : 0);
-
-  renderLineChart('trend-chart', allMonths, [
-    { label:'Лиды', data:lVals, borderColor:'#58a6ff', backgroundColor:'rgba(88,166,255,.1)', tension:.3, fill:true },
-    { label:'Сделки', data:dVals, borderColor:'#3fb950', backgroundColor:'rgba(63,185,80,.1)', tension:.3, fill:true },
+  renderLine('trend-chart',months,[
+    {label:'Лиды',data:lVals,borderColor:'#58a6ff',backgroundColor:'rgba(88,166,255,.1)',tension:.3,fill:true},
+    {label:'Договора (WON)',data:dVals,borderColor:'#3fb950',backgroundColor:'rgba(63,185,80,.1)',tension:.3,fill:true},
+  ]);
+  renderLine('avg-check-chart',months,[
+    {label:'Средний чек (₽)',data:avgCheck,borderColor:'#2ea2a0',backgroundColor:'rgba(46,162,160,.1)',tension:.3,fill:true},
+  ]);
+  renderLine('conv-chart',months,[
+    {label:'CR Лид→Договор %',data:cvVals,borderColor:'#a371f7',backgroundColor:'rgba(163,113,247,.1)',tension:.3,fill:true},
   ]);
 
-  renderLineChart('conv-chart', allMonths, [
-    { label:'Конверсия лид→сделка %', data:cVals, borderColor:'#a371f7', backgroundColor:'rgba(163,113,247,.1)', tension:.3, fill:true },
-  ]);
+  const totalL=Object.values(lmd).reduce((a,m)=>a+(m.t||0),0);
+  const totalW=Object.values(dmd).reduce((a,m)=>a+(m.won||0),0);
+  const last3=months.slice(-3);
+  const l3L=last3.reduce((a,m)=>a+(lmd[m]?.t||0),0);
+  const l3W=last3.reduce((a,m)=>a+(dmd[m]?.won||0),0);
+  document.getElementById('conv-cards').innerHTML=
+    card('Лидов (с 01.01.2026)',fmt(totalL),'accent')+
+    card('Договоров (WON)',fmt(totalW),'green')+
+    card('CR Лид→Договор (всё время)',totalL?Math.round(totalW/totalL*100)+'%':'—','purple')+
+    card('CR последние 3 мес',l3L?Math.round(l3W/l3L*100)+'%':'—','teal',l3L?fmt(l3W)+' из '+fmt(l3L):'');
 
-  // Summary cards
-  const totalLeads = Object.values(lm).reduce((a,b)=>a+b,0);
-  const totalDeals = Object.values(dm).reduce((a,b)=>a+b,0);
-  const convRate = totalLeads ? Math.round(totalDeals/totalLeads*100) : 0;
-
-  const last3Months = allMonths.slice(-3);
-  const recentLeads = last3Months.reduce((a,m)=>a+(lm[m]||0),0);
-  const recentDeals = last3Months.reduce((a,m)=>a+(dm[m]||0),0);
-  const recentConv  = recentLeads ? Math.round(recentDeals/recentLeads*100) : 0;
-
-  document.getElementById('conv-cards').innerHTML =
-    renderCard('Всего лидов (18 мес)',    fmt(totalLeads),  'accent') +
-    renderCard('Всего сделок (18 мес)',   fmt(totalDeals),  'green') +
-    renderCard('Конверсия лид→сделка',   convRate+'%',     'purple', 'за всё время') +
-    renderCard('Конверсия (посл. 3 мес)', recentConv+'%',  'teal',   recentLeads ? fmt(recentDeals)+' из '+fmt(recentLeads) : '');
+  // Source table
+  const srcMonths=Object.keys(lmd);
+  const srcTotals={};
+  srcMonths.forEach(m=>{
+    Object.entries(lmd[m]?.src||{}).forEach(([id,cnt])=>{
+      if(!srcTotals[id])srcTotals[id]={t:0,pcp:0,came:0};
+      srcTotals[id].t+=cnt;
+    });
+  });
+  // approximate pcp and came by src share
+  Object.entries(DATA.leads.daily||{}).forEach(([,day])=>{
+    Object.entries(day.src||{}).forEach(([id,cnt])=>{
+      if(!srcTotals[id])srcTotals[id]={t:0,pcp:0,came:0};
+      const sc=day.t?cnt/day.t:0;
+      srcTotals[id].pcp+=(day.s?.['UC_I0XLWE']||0)+(day.s?.['UC_KXIWFH']||0)+(day.s?.['UC_W36M8K']||0)+(day.s?.['UC_CI0W8O']||0)+(day.s?.['UC_TD7XTT']||0)+(day.s?.['CONVERTED']||0);
+      srcTotals[id].pcp*=0; // reset, recalc below
+      srcTotals[id].came+=(day.s?.['CONVERTED']||0)*sc;
+    });
+  });
+  // simpler: use src share from daily
+  const srcAgg={};
+  Object.entries(DATA.leads.daily||{}).forEach(([,day])=>{
+    const came=(day.s?.['CONVERTED']||0);
+    const pcp=(day.s?.['UC_I0XLWE']||0)+(day.s?.['UC_KXIWFH']||0)+(day.s?.['UC_W36M8K']||0)+(day.s?.['UC_CI0W8O']||0)+(day.s?.['UC_TD7XTT']||0)+came;
+    Object.entries(day.src||{}).forEach(([id,cnt])=>{
+      if(!srcAgg[id])srcAgg[id]={t:0,pcp:0,came:0};
+      const sc=day.t?cnt/day.t:0;
+      srcAgg[id].t+=cnt;
+      srcAgg[id].pcp+=pcp*sc;
+      srcAgg[id].came+=came*sc;
+    });
+  });
+  const srcNames=DATA.meta.sources||{};
+  const srcRows=Object.entries(srcAgg).sort((a,b)=>b[1].t-a[1].t);
+  document.getElementById('source-table').innerHTML=srcRows.map(([id,d])=>{
+    const name=srcNames[id]||'Источник '+id;
+    const crPcp=pctN(d.pcp,d.t);const crCame=pctN(d.came,d.t);
+    const grade=crCame>=15?'<span class="badge badge-green">A</span>':crCame>=8?'<span class="badge badge-orange">B</span>':'<span class="badge badge-red">C</span>';
+    return`<tr><td>${name}</td><td>${fmt(d.t)}</td><td>${fmt(d.pcp)}</td><td>${fmt(d.came)}</td>
+      <td><span class="${crPcp>=40?'cr-good':crPcp>=20?'cr-mid':'cr-bad'}">${crPcp}%</span></td>
+      <td><span class="${crCame>=15?'cr-good':crCame>=8?'cr-mid':'cr-bad'}">${crCame}%</span></td>
+      <td>${grade}</td></tr>`;
+  }).join('')||'<tr><td colspan="7" style="color:var(--muted);text-align:center;padding:16px">Нет данных по источникам</td></tr>';
 }
 
-function getFilteredDays(daily) {
-  return Object.entries(daily).filter(([d]) => d >= dateFrom && d <= dateTo);
+// ── TAB 4: FUNNEL TABLE ──
+function getBudget(){try{return JSON.parse(localStorage.getItem('dtbudget')||'{}')}catch{return{}}}
+function saveBudget(){
+  const budget={};
+  document.querySelectorAll('.budget-inp').forEach(inp=>{
+    const v=parseFloat(inp.value.replace(/\s/g,'').replace(',','.'));
+    if(!isNaN(v)&&v>0)budget[inp.dataset.month]=v;
+  });
+  localStorage.setItem('dtbudget',JSON.stringify(budget));
+  document.getElementById('budget-saved').style.display='inline';
+  setTimeout(()=>document.getElementById('budget-saved').style.display='none',2000);
+  renderFunnelTable();
 }
 
-function render() {
-  if (!DATA) return;
-  if (currentTab==='leads')    renderLeads();
-  else if (currentTab==='deals')   renderDeals();
-  else if (currentTab==='overview') renderOverview();
+function renderFunnelTab(){
+  const lmd=DATA.leads.monthly_detail||{};
+  const dmd=DATA.deals.monthly_detail||{};
+  const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort();
+  const budget=getBudget();
+
+  // Budget inputs
+  const inp=document.getElementById('budget-inputs');
+  inp.innerHTML=months.map(m=>`<div class="budget-month">
+    <label>${m}</label>
+    <input class="budget-inp" data-month="${m}" value="${budget[m]?Math.round(budget[m]).toLocaleString('ru-RU'):''}" placeholder="0">
+  </div>`).join('');
+  inp.innerHTML+=`<div style="align-self:flex-end"><button class="btn-save" onclick="saveBudget()">Сохранить</button></div>`;
+
+  renderFunnelTable();
 }
 
-if (sessionStorage.getItem('auth')==='1') loadData();
+function renderFunnelTable(){
+  const lmd=DATA.leads.monthly_detail||{};
+  const dmd=DATA.deals.monthly_detail||{};
+  const months=Array.from(new Set([...Object.keys(lmd),...Object.keys(dmd)])).sort();
+  const budget=getBudget();
+
+  const hasBudget=months.some(m=>budget[m]>0);
+
+  function crCell(val){
+    const cls=val>=40?'cr-good':val>=20?'cr-mid':'cr-bad';
+    return`<td class="${cls}">${val}%</td>`;
+  }
+  function moneyCell(val){return`<td style="color:var(--green)">${val>0?fmtM(val):'—'}</td>`}
+  function numCell(val){return`<td>${val>0?fmt(val):'0'}</td>`}
+
+  const cols=months.map(m=>`<th>${m}</th>`).join('');
+  const rows=[];
+
+  // Section: Объём
+  rows.push(`<tr class="row-section-header"><td>Объём</td>${months.map(()=>'<td></td>').join('')}</tr>`);
+
+  const rowDef=(label,fn,cls='')=>`<tr class="${cls}">
+    <td>${label}</td>${months.map(m=>numCell(fn(m))).join('')}</tr>`;
+
+  rows.push(rowDef('Заявки',m=>lmd[m]?.t||0));
+  rows.push(rowDef('ПЦП',m=>lmd[m]?.pcp||0));
+  rows.push(rowDef('Записи',m=>lmd[m]?.rec||0));
+  rows.push(rowDef('Явка',m=>lmd[m]?.came||0));
+  rows.push(rowDef('Договор (WON)',m=>dmd[m]?.won||0));
+  rows.push(rowDef('Брак',m=>lmd[m]?.junk||0));
+  rows.push(rowDef('Недозвон',m=>lmd[m]?.miss||0));
+
+  // Section: Выручка
+  rows.push(`<tr class="row-section-header"><td>Финансы</td>${months.map(()=>'<td></td>').join('')}</tr>`);
+  rows.push(`<tr class="row-money"><td>Сумма Договора</td>${months.map(m=>moneyCell(dmd[m]?.won_r||0)).join('')}</tr>`);
+  rows.push(`<tr class="row-money"><td>Сумма планов лечения</td>${months.map(m=>moneyCell(dmd[m]?.plan_r||0)).join('')}</tr>`);
+  rows.push(`<tr class="row-money"><td>Остаток по рассрочкам</td>${months.map(m=>moneyCell(dmd[m]?.inst_r||0)).join('')}</tr>`);
+
+  if(hasBudget){
+    rows.push(`<tr class="row-money"><td>Траты</td>${months.map(m=>moneyCell(budget[m]||0)).join('')}</tr>`);
+    // Cost per stage
+    rows.push(`<tr class="row-section-header"><td>Стоимость этапа</td>${months.map(()=>'<td></td>').join('')}</tr>`);
+    const costRow=(label,fn)=>`<tr class="row-money"><td>${label}</td>${months.map(m=>{
+      const spend=budget[m]||0;const cnt=fn(m);
+      return moneyCell(cnt>0&&spend>0?Math.round(spend/cnt):0);
+    }).join('')}</tr>`;
+    rows.push(costRow('Цена ПЦП',m=>lmd[m]?.pcp||0));
+    rows.push(costRow('Цена Записи',m=>lmd[m]?.rec||0));
+    rows.push(costRow('Цена Явки',m=>lmd[m]?.came||0));
+    rows.push(costRow('Цена Договора',m=>dmd[m]?.won||0));
+    // Marketing efficiency
+    rows.push(`<tr class="row-section-header"><td>Маркетинговая эффективность</td>${months.map(()=>'<td></td>').join('')}</tr>`);
+    rows.push(`<tr><td>ДРР (%)</td>${months.map(m=>{
+      const spend=budget[m]||0;const rev=dmd[m]?.won_r||0;
+      const v=rev>0&&spend>0?Math.round(spend/rev*100):0;
+      return`<td class="${v<30?'cr-good':v<60?'cr-mid':'cr-bad'}">${v>0?v+'%':'—'}</td>`;
+    }).join('')}</tr>`);
+    rows.push(`<tr><td>ROMI (%)</td>${months.map(m=>{
+      const spend=budget[m]||0;const rev=dmd[m]?.won_r||0;
+      const v=spend>0?Math.round((rev-spend)/spend*100):0;
+      return`<td class="${v>=100?'cr-good':v>=0?'cr-mid':'cr-bad'}">${spend>0?v+'%':'—'}</td>`;
+    }).join('')}</tr>`);
+  }
+
+  // Section: Конверсии
+  rows.push(`<tr class="row-section-header row-cr"><td>Конверсии</td>${months.map(()=>'<td></td>').join('')}</tr>`);
+  const crRow=(label,fn)=>`<tr class="row-cr"><td>${label}</td>${months.map(m=>crCell(fn(m))).join('')}</tr>`;
+  rows.push(crRow('CR Лид→ПЦП',m=>pctN(lmd[m]?.pcp,lmd[m]?.t)));
+  rows.push(crRow('CR ПЦП→Запись',m=>pctN(lmd[m]?.rec,lmd[m]?.pcp)));
+  rows.push(crRow('CR Запись→Явка',m=>pctN(lmd[m]?.came,lmd[m]?.rec)));
+  rows.push(crRow('CR ПЦП→Явка',m=>pctN(lmd[m]?.came,lmd[m]?.pcp)));
+  rows.push(crRow('CR Лид→Запись',m=>pctN(lmd[m]?.rec,lmd[m]?.t)));
+  rows.push(crRow('CR Лид→Явка',m=>pctN(lmd[m]?.came,lmd[m]?.t)));
+  rows.push(crRow('CR Лид→Договор',m=>pctN(dmd[m]?.won,lmd[m]?.t)));
+
+  document.getElementById('conv-table').innerHTML=
+    `<thead><tr><th>Показатель</th>${cols}</tr></thead><tbody>${rows.join('')}</tbody>`;
+}
+
+// ── TAB 5: FINANCE ──
+function renderFinance(){
+  const agg=aggDeals(dateFrom,dateTo);
+  const pipeline=DATA.deals.pipeline||{};
+  const atRisk=DATA.deals.at_risk||[];
+
+  // Cash flow cards
+  const potential=agg.won_r+agg.inst_r;
+  document.getElementById('finance-flow-cards').innerHTML=
+    card('Выручка в кассе',fmtM(agg.won_r),'green','WON сделки за период')+
+    card('Остаток по рассрочкам',fmtM(agg.inst_r),'orange','придёт позже')+
+    card('Суммы планов лечения',fmtM(agg.plan_r),'teal','согласованные планы')+
+    card('Итого потенциал',fmtM(potential),'purple','касса + рассрочки');
+
+  // Pipeline
+  const stageMap={'NEW':'Пришел','PREPARATION':'Назначен ТМ','PREPAYMENT_INVOICE':'На презентации',
+    'EXECUTING':'На осмотре','FINAL_INVOICE':'На закрытие','1':'Фин отдел','UC_FCWL21':'Фин отдел',
+    'UC_MLCFYZ':'На осмотре','UC_IA4RQ3':'На закрытие','UC_LNVU9C':'ТМ назначен','UC_MSD2TV':'Фин отдел'};
+  const pipeStageOrder=['NEW','PREPARATION','PREPAYMENT_INVOICE','EXECUTING','FINAL_INVOICE','1','UC_FCWL21'];
+  const pipeColors={'NEW':'#58a6ff','PREPARATION':'#a371f7','PREPAYMENT_INVOICE':'#d29922',
+    'EXECUTING':'#3fb950','FINAL_INVOICE':'#39d353','1':'#ff7b72','UC_FCWL21':'#ff7b72'};
+
+  let totalPipe=0;
+  const pgHtml=pipeStageOrder.filter(s=>pipeline[s]).map(s=>{
+    const pg=pipeline[s];totalPipe+=pg.sum;
+    return`<div class="pipeline-card" style="border-left-color:${pipeColors[s]||'var(--accent)'}">
+      <div class="pipeline-stage">${stageMap[s]||s}</div>
+      <div class="pipeline-sum">${fmtM(pg.sum)}</div>
+      <div class="pipeline-meta">${fmt(pg.count)} сделок${pg.plan_r>0?' · план: '+fmtM(pg.plan_r):''}</div>
+    </div>`;
+  }).join('');
+  document.getElementById('pipeline-grid').innerHTML=pgHtml+
+    `<div class="pipeline-card" style="border-left-color:var(--green)">
+      <div class="pipeline-stage">ИТОГО PIPELINE</div>
+      <div class="pipeline-sum">${fmtM(totalPipe)}</div>
+      <div class="pipeline-meta">все активные стадии</div>
+    </div>`;
+
+  // Pipeline chart
+  const pLabels=pipeStageOrder.filter(s=>pipeline[s]).map(s=>stageMap[s]||s);
+  const pVals=pipeStageOrder.filter(s=>pipeline[s]).map(s=>Math.round(pipeline[s].sum));
+  const pColors=pipeStageOrder.filter(s=>pipeline[s]).map(s=>pipeColors[s]||'#58a6ff');
+  mkChart('pipeline-chart','bar',pLabels,[{label:'Сумма (₽)',data:pVals,backgroundColor:pColors,borderRadius:6}],{
+    plugins:{legend:{display:false}},
+    scales:{y:{ticks:{color:'#8b949e',callback:v=>fmtM(v)},grid:{color:'rgba(255,255,255,.04)'}},x:{ticks:{color:'#8b949e'},grid:{color:'rgba(255,255,255,.04)'}}}
+  });
+
+  // At risk table
+  document.getElementById('risk-title').textContent=`Сделки под риском (${atRisk.length})`;
+  const stNames=DATA.meta.deal_stages||{};
+  document.getElementById('risk-table').innerHTML=atRisk.map(r=>{
+    const cls=r.days_idle>=60?'risk-row-critical':r.days_idle>=30?'risk-row-warn':'';
+    return`<tr class="${cls}">
+      <td>${r.city}</td>
+      <td>${stNames[r.stage]||r.stage}</td>
+      <td>${fmtM(r.opp)}</td>
+      <td>—</td>
+      <td>${r.mod}</td>
+      <td><strong>${r.days_idle}</strong> дн.</td>
+    </tr>`;
+  }).join('')||'<tr><td colspan="6" style="color:var(--muted);text-align:center;padding:20px">Сделок под риском нет ✓</td></tr>';
+}
+
+// ── TAB 6: BI ──
+function renderBI(){
+  const agg=aggLeads(dateFrom,dateTo);
+  const aggD=aggDeals(dateFrom,dateTo);
+  const pp=prevPeriod();
+  const aggP=aggLeads(pp.from,pp.to);
+  const aggDP=aggDeals(pp.from,pp.to);
+  const lmd=DATA.leads.monthly_detail||{};
+  const dmd=DATA.deals.monthly_detail||{};
+  const months=Object.keys(lmd).sort();
+  const lastM=months[months.length-1];
+  const prevM=months[months.length-2];
+  const pipeline=DATA.deals.pipeline||{};
+  const atRisk=DATA.deals.at_risk||[];
+  const srcAgg={};
+  Object.entries(DATA.leads.daily||{}).forEach(([,day])=>{
+    const came=(day.s?.['CONVERTED']||0);
+    Object.entries(day.src||{}).forEach(([id,cnt])=>{
+      if(!srcAgg[id])srcAgg[id]={t:0,came:0};
+      const sc=day.t?cnt/day.t:0;srcAgg[id].t+=cnt;srcAgg[id].came+=came*sc;
+    });
+  });
+  const srcNames=DATA.meta.sources||{};
+  const users=DATA.meta.users||{};
+
+  const s=agg.s;const g=aggD.g;
+  const came=s['CONVERTED']||0;
+  const rec=(s['UC_W36M8K']||0)+(s['UC_CI0W8O']||0)+(s['UC_TD7XTT']||0);
+  const pcp=(s['UC_I0XLWE']||0)+(s['UC_KXIWFH']||0)+rec+came;
+  const won=g['WON']||0;const wonP=aggDP.g['WON']||0;
+
+  // CR current vs prev
+  const crCur=agg.t>0?came/agg.t*100:0;
+  const crPrev=aggP.t>0?(aggP.s['CONVERTED']||0)/aggP.t*100:0;
+  const crDiff=crCur-crPrev;
+
+  // Best/worst source
+  const srcSorted=Object.entries(srcAgg).filter(([,d])=>d.t>50).sort((a,b)=>(b[1].came/b[1].t)-(a[1].came/a[1].t));
+  const bestSrc=srcSorted[0];const worstSrc=srcSorted[srcSorted.length-1];
+
+  // Bottleneck (biggest absolute drop)
+  const fStages=[['Всего',agg.t],['ПЦП',pcp],['Записан',rec],['Пришёл',came]];
+  let maxDrop=0,bottleneck='';
+  for(let i=1;i<fStages.length;i++){
+    const drop=fStages[i-1][1]-fStages[i][1];
+    if(drop>maxDrop){maxDrop=drop;bottleneck=`${fStages[i-1][0]}→${fStages[i][0]}`}
+  }
+
+  // Pipeline risk sum
+  const riskSum=atRisk.reduce((a,r)=>a+r.opp,0);
+
+  // Best operator
+  const ops=aggOps('leads');
+  const bestOp=Object.entries(ops).filter(([,d])=>d.t>=20)
+    .sort((a,b)=>(b[1].s['CONVERTED']||0)/b[1].t-(a[1].s['CONVERTED']||0)/a[1].t)[0];
+
+  // City avg check
+  const cityR={},cityW={};
+  Object.entries(DATA.deals.daily||{}).forEach(([,day])=>{
+    Object.entries(day.c||{}).forEach(([c,cnt])=>{
+      const sc=day.t?cnt/day.t:0;
+      cityR[c]=(cityR[c]||0)+(day.won_r||0)*sc;
+      cityW[c]=(cityW[c]||0)+(day.g?.['WON']||0)*sc;
+    });
+  });
+  const cityAvg=Object.keys(cityR).map(c=>([c,cityW[c]>0?cityR[c]/cityW[c]:0])).sort((a,b)=>b[1]-a[1]);
+  const topCity=cityAvg[0];
+
+  const insights=[];
+
+  // 1. Conversion trend
+  if(Math.abs(crDiff)>1){
+    insights.push({
+      priority:crDiff<-3?'critical':crDiff<0?'warn':'good',
+      icon:crDiff<0?'📉':'📈',
+      title:`Конверсия лид→явка ${crDiff<0?'упала':'выросла'} на ${Math.abs(crDiff).toFixed(1)}%`,
+      body:`Текущий период: ${crCur.toFixed(1)}% vs предыдущий: ${crPrev.toFixed(1)}%. Абсолютно пришло ${fmt(came)} из ${fmt(agg.t)} лидов.`,
+      rec:crDiff<0?`Проверьте качество обработки лидов на этапе Записан→Пришёл. Узкое место: ${bottleneck}`:`Зафиксируйте текущие практики и масштабируйте их.`
+    });
+  }
+
+  // 2. Won dynamics
+  if(wonP>0){
+    const wonChg=(won-wonP)/wonP*100;
+    insights.push({
+      priority:wonChg<-10?'critical':wonChg<0?'warn':'good',
+      icon:wonChg<0?'😟':'🎯',
+      title:`Договора ${wonChg<0?'упали':'выросли'} на ${Math.abs(wonChg).toFixed(0)}%`,
+      body:`Текущий период: ${fmt(won)} WON, прошлый: ${fmt(wonP)}. Выручка: ${fmtM(aggD.won_r)}.`,
+      rec:wonChg<0?'Усильте работу на стадиях Фин отдел и На закрытие.':'Хороший результат — анализируйте что сработало и повторяйте.'
+    });
+  }
+
+  // 3. Bottleneck
+  if(bottleneck&&maxDrop>0){
+    insights.push({
+      priority:'warn',icon:'🚧',
+      title:`Узкое место: ${bottleneck}`,
+      body:`Здесь теряется ${fmt(maxDrop)} лидов (${pct(maxDrop,agg.t)} от всех). Это самый большой отвал в воронке.`,
+      rec:'Проведите анализ причин на этом этапе. Прослушайте записи звонков, проверьте скрипты операторов.'
+    });
+  }
+
+  // 4. Best source
+  if(bestSrc){
+    const bName=srcNames[bestSrc[0]]||'Источник '+bestSrc[0];
+    const bCR=(bestSrc[1].came/bestSrc[1].t*100).toFixed(1);
+    insights.push({
+      priority:'good',icon:'🏆',
+      title:`Лучший источник: ${bName}`,
+      body:`CR лид→явка ${bCR}% (${fmt(bestSrc[1].came)} явок из ${fmt(bestSrc[1].t)} лидов).`,
+      rec:`Рассмотрите увеличение бюджета на ${bName} — он даёт лучшее качество.`
+    });
+  }
+
+  // 5. Worst source
+  if(worstSrc&&worstSrc!==bestSrc){
+    const wName=srcNames[worstSrc[0]]||'Источник '+worstSrc[0];
+    const wCR=(worstSrc[1].came/worstSrc[1].t*100).toFixed(1);
+    insights.push({
+      priority:'warn',icon:'⚠️',
+      title:`Худший источник: ${wName}`,
+      body:`CR лид→явка всего ${wCR}% (${fmt(worstSrc[1].came)} из ${fmt(worstSrc[1].t)} лидов).`,
+      rec:`Пересмотрите настройки кампаний в ${wName} или перераспределите бюджет.`
+    });
+  }
+
+  // 6. Top operator
+  if(bestOp){
+    const bopName=users[bestOp[0]]||'Оператор '+bestOp[0];
+    const bopCR=(bestOp[1].s['CONVERTED']||0)/bestOp[1].t*100;
+    insights.push({
+      priority:'good',icon:'⭐',
+      title:`Лучший оператор: ${bopName}`,
+      body:`Конверсия ${bopCR.toFixed(0)}% при ${fmt(bestOp[1].t)} лидах. Образец для других операторов.`,
+      rec:'Запишите звонки этого оператора как обучающий материал для команды.'
+    });
+  }
+
+  // 7. Top city avg check
+  if(topCity&&topCity[1]>0){
+    insights.push({
+      priority:'good',icon:'🏙️',
+      title:`Лучший средний чек: ${topCity[0]}`,
+      body:`Средний чек ${fmtM(topCity[1])} — выше остальных городов.`,
+      rec:'Исследуйте что делают торговые менеджеры в этом городе и тиражируйте практику.'
+    });
+  }
+
+  // 8. At risk pipeline
+  if(riskSum>0){
+    insights.push({
+      priority:atRisk.length>10?'critical':'warn',icon:'⏰',
+      title:`${fmt(atRisk.length)} сделок без движения более 30 дней`,
+      body:`Сумма под риском: ${fmtM(riskSum)}. Сделки зависли в воронке без активности.`,
+      rec:'Свяжитесь с ответственными и активируйте сделки. Риск потери выручки.'
+    });
+  }
+
+  // 9. Installments
+  if(aggD.inst_r>0){
+    insights.push({
+      priority:'good',icon:'💳',
+      title:`Рассрочки: ${fmtM(aggD.inst_r)} ожидается`,
+      body:`${fmt(aggD.inst)} сделок с рассрочкой на общую сумму остатка ${fmtM(aggD.inst_r)}.`,
+      rec:'Контролируйте своевременность поступления платежей по рассрочкам.'
+    });
+  }
+
+  document.getElementById('insights-grid').innerHTML=insights.map(ins=>`
+    <div class="insight-card ${ins.priority}">
+      <div class="insight-header">
+        <span class="insight-icon">${ins.icon}</span>
+        <span class="insight-title">${ins.title}</span>
+        <span class="insight-priority priority-${ins.priority}">${ins.priority==='critical'?'🔴 Критично':ins.priority==='warn'?'🟡 Внимание':'🟢 Отлично'}</span>
+      </div>
+      <div class="insight-body">${ins.body}</div>
+      <div class="insight-rec">→ ${ins.rec}</div>
+    </div>`).join('');
+
+  // Bottleneck chart
+  const bLabels=['Всего→ПЦП','ПЦП→Запись','Запись→Явка'];
+  const bVals=[agg.t-pcp,pcp-rec,rec-came].map(v=>Math.max(0,Math.round(v)));
+  mkChart('bottleneck-chart','bar',bLabels,[{
+    label:'Потери лидов',data:bVals,backgroundColor:['#f85149','#d29922','#8b949e'],borderRadius:6
+  }],{plugins:{legend:{display:false}}});
+
+  // Source CR chart
+  const srcCrData=Object.entries(srcAgg).filter(([,d])=>d.t>10)
+    .map(([id,d])=>({name:srcNames[id]||'Источник '+id,cr:d.t>0?Math.round(d.came/d.t*100):0}))
+    .sort((a,b)=>b.cr-a.cr).slice(0,8);
+  mkChart('source-cr-chart','bar',srcCrData.map(d=>d.name),[{
+    label:'CR Лид→Явка %',data:srcCrData.map(d=>d.cr),
+    backgroundColor:srcCrData.map(d=>d.cr>=15?'#3fb950':d.cr>=8?'#d29922':'#f85149'),borderRadius:6
+  }],{indexAxis:'y',plugins:{legend:{display:false}}});
+}
+
+// ── MAIN RENDER ──
+function render(){
+  if(!DATA)return;
+  if(currentTab==='leads')renderLeads();
+  else if(currentTab==='deals')renderDeals();
+  else if(currentTab==='overview')renderOverview();
+  else if(currentTab==='funnel')renderFunnelTab();
+  else if(currentTab==='finance')renderFinance();
+  else if(currentTab==='bi')renderBI();
+}
+
+if(sessionStorage.getItem('auth')==='1')loadData();
 </script>
 </body>
 </html>
