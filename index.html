@@ -678,8 +678,8 @@ function renderLeads(){
 
   const ops=aggOps('leads');const users=DATA.meta.users||{};
   const rows=Object.entries(ops).map(([id,d])=>{
-    const rec2=(d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0);
     const came2=d.s['CONVERTED']||0;
+    const rec2=(d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0)+came2;
     const junk2=(d.s['JUNK']||0)+(d.s['1']||0);
     const pcp2=(d.s['UC_I0XLWE']||0)+(d.s['UC_KXIWFH']||0)+(d.s['UC_W36M8K']||0)+(d.s['UC_CI0W8O']||0)+(d.s['UC_TD7XTT']||0)+came2;
     const cp=d.t?came2/d.t*100:0;
@@ -718,7 +718,7 @@ function renderDeals(){
     {label:'Всего сделок',cur:agg.t,prev:aggP.t},
     {label:'Успешных',cur:won,prev:wonP},
     {label:'Выручка WON',cur:agg.won_r,prev:aggP.won_r,money:true},
-    {label:'Провалено',cur:lost,prev:(aggP.g['LOSE']||0)+(aggP.g['APOLOGY']||0)},
+    {label:'Провалено',cur:lost,prev:(aggP.g['LOSE']||0)+(aggP.g['APOLOGY']||0)+(aggP.g['UC_ZFGB34']||0)},
   ]);
 
   document.getElementById('deals-cards').innerHTML=
@@ -821,25 +821,6 @@ function renderOverview(){
     card('CR последние 3 мес',l3L?Math.round(l3W/l3L*100)+'%':'—','teal',l3L?fmt(l3W)+' из '+fmt(l3L):'');
 
   // Source table
-  const srcMonths=Object.keys(lmd);
-  const srcTotals={};
-  srcMonths.forEach(m=>{
-    Object.entries(lmd[m]?.src||{}).forEach(([id,cnt])=>{
-      if(!srcTotals[id])srcTotals[id]={t:0,pcp:0,came:0};
-      srcTotals[id].t+=cnt;
-    });
-  });
-  // approximate pcp and came by src share
-  Object.entries(DATA.leads.daily||{}).forEach(([,day])=>{
-    Object.entries(day.src||{}).forEach(([id,cnt])=>{
-      if(!srcTotals[id])srcTotals[id]={t:0,pcp:0,came:0};
-      const sc=day.t?cnt/day.t:0;
-      srcTotals[id].pcp+=(day.s?.['UC_I0XLWE']||0)+(day.s?.['UC_KXIWFH']||0)+(day.s?.['UC_W36M8K']||0)+(day.s?.['UC_CI0W8O']||0)+(day.s?.['UC_TD7XTT']||0)+(day.s?.['CONVERTED']||0);
-      srcTotals[id].pcp*=0; // reset, recalc below
-      srcTotals[id].came+=(day.s?.['CONVERTED']||0)*sc;
-    });
-  });
-  // simpler: use src share from daily
   const srcAgg={};
   Object.entries(DATA.leads.daily||{}).forEach(([,day])=>{
     const came=(day.s?.['CONVERTED']||0);
